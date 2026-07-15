@@ -1,0 +1,31 @@
+import { prisma } from "@/lib/prisma";
+import { requirePermission } from "@/lib/permissions";
+import { ServiceOrderForm } from "./ServiceOrderForm";
+
+export default async function NovaOSPage() {
+  await requirePermission("os", "edit");
+
+  const [customers, technicians, parts] = await Promise.all([
+    prisma.customer.findMany({ orderBy: { name: "asc" } }),
+    prisma.user.findMany({ orderBy: { name: "asc" } }),
+    prisma.part.findMany({ orderBy: { name: "asc" } }),
+  ]);
+
+  return (
+    <div className="mx-auto max-w-5xl px-6 py-10 font-sans">
+      <h1 className="mb-6 text-2xl font-semibold text-black dark:text-zinc-50">
+        Nova Ordem de Serviço
+      </h1>
+      <ServiceOrderForm
+        customers={customers.map((c) => ({ id: c.id, name: c.name, phone: c.phone }))}
+        technicians={technicians.map((t) => ({ id: t.id, name: t.name }))}
+        inventoryParts={parts.map((p) => ({
+          id: p.id,
+          name: p.name,
+          quantity: p.quantity,
+          unitPrice: p.unitPrice,
+        }))}
+      />
+    </div>
+  );
+}

@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String                   @id @default(cuid())
+  username          String                   @unique
+  password          String
+  name              String
+  isAdmin           Boolean                  @default(false)
+  commissionRate    Float                    @default(0)
+  permissionGroupId String?
+  permissionGroup   PermissionGroup?         @relation(fields: [permissionGroupId], references: [id])
+  createdAt         DateTime                 @default(now())
+  serviceOrders     ServiceOrder[]
+  permissionOverrides UserPermissionOverride[]
+  commissions       Commission[]
+}
+
+model PermissionGroup {
+  id          String                   @id @default(cuid())
+  name        String                   @unique
+  createdAt   DateTime                 @default(now())
+  users       User[]
+  permissions PermissionGroupModule[]
+}
+
+model PermissionGroupModule {
+  id      String          @id @default(cuid())
+  groupId String
+  group   PermissionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  module  String
+  canView Boolean         @default(false)
+  canEdit Boolean         @default(false)
+
+  @@unique([groupId, module])
+}
+
+model UserPermissionOverride {
+  id      String  @id @default(cuid())
+  userId  String
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module  String
+  canView Boolean?
+  canEdit Boolean?
+
+  @@unique([userId, module])
+}
+
+model Customer {
+  id            String         @id @default(cuid())
+  name          String
+  phone         String?
+  email         String?
+  document      String?
+  createdAt     DateTime       @default(now())
+  serviceOrders ServiceOrder[]
+  sales         Sale[]
+}
+
+model ServiceOrder {
+  id             String    @id @default(cuid())
+  number         Int       @unique
+  customerId     String
+  customer       Customer  @relation(fields: [customerId], references: [id])
+  technicianId   String?
+  technician     User?     @relation(fields: [technicianId], references: [id])
+  equipment      String?
+  serialNumber   String?
+  problem        String?
+  internalNotes  String?
+  status         String    @default("aberta")
+  entryDate      DateTime  @default(now())
+  expectedDate   DateTime?
+  completionDate DateTime?
+  exitDate       DateTime?
+  discount       Float     @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  parts    ServiceOrderPart[]
+  services ServiceOrderService[]
+  sale     Sale?
+}
+
+model ServiceOrderPart {
+  id             String       @id @default(cuid())
+  serviceOrderId String
+  serviceOrder   ServiceOrder @relation(fields: [serviceOrderId], references: [id], onDelete: Cascade)
+  partId         String?
+  part           Part?        @relation(fields: [partId], references: [id])
+  description    String
+  quantity       Int          @default(1)
+  unitPrice      Float        @default(0)
+}
+
+model Part {
+  id        String   @id @default(cuid())
+  name      String
+  sku       String?
+  quantity  Int      @default(0)
+  minStock  Int      @default(0)
+  unitPrice Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  serviceOrderParts ServiceOrderPart[]
+}
+
+model ServiceOrderService {
+  id             String       @id @default(cuid())
+  serviceOrderId String
+  serviceOrder   ServiceOrder @relation(fields: [serviceOrderId], references: [id], onDelete: Cascade)
+  description    String
+  unitPrice      Float        @default(0)
+  startedAt      DateTime?
+  endedAt        DateTime?
+}
+
+model Sale {
+  id              String   @id @default(cuid())
+  number          Int      @unique
+  serviceOrderId  String   @unique
+  serviceOrder    ServiceOrder @relation(fields: [serviceOrderId], references: [id])
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id])
+  paymentMethod   String
+  totalAmount     Float
+  discount        Float    @default(0)
+  createdAt       DateTime @default(now())
+
+  installments SaleInstallment[]
+  commission   Commission?
+}
+
+model SaleInstallment {
+  id      String    @id @default(cuid())
+  saleId  String
+  sale    Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  number  Int
+  amount  Float
+  dueDate DateTime
+  status  String    @default("pendente")
+  paidAt  DateTime?
+}
+
+model Commission {
+  id         String   @id @default(cuid())
+  saleId     String   @unique
+  sale       Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  baseAmount Float
+  rate       Float
+  amount     Float
+  createdAt  DateTime @default(now())
+}
