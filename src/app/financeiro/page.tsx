@@ -11,20 +11,55 @@ function formatDate(date: Date) {
   return date.toLocaleDateString("pt-BR", { timeZone: "UTC" });
 }
 
-export default async function FinanceiroPage() {
+function startOfDayUTC(dateStr: string) {
+  return new Date(`${dateStr}T00:00:00.000Z`);
+}
+
+function endOfDayUTC(dateStr: string) {
+  const d = startOfDayUTC(dateStr);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d;
+}
+
+export default async function FinanceiroPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string; cliente?: string }>;
+}) {
   const user = await requirePermission("financeiro", "view");
   const canEdit = can(user, "financeiro", "edit");
+  const { from, to, cliente } = await searchParams;
 
-  const [installments, commissions] = await Promise.all([
-    prisma.saleInstallment.findMany({
-      orderBy: { dueDate: "asc" },
-      include: { sale: { include: { customer: true, serviceOrder: true } } },
-    }),
+  const dueDateFilter =
+    from || to
+      ? {
+          ...(from && { gte: startOfDayUTC(from) }),
+          ...(to && { lt: endOfDayUTC(to) }),
+        }
+      : undefined;
+
+  const hasFilter = Boolean(from || to || cliente);
+
+  const [installmentsRaw, commissions] = await Promise.all([
+    hasFilter
+      ? prisma.saleInstallment.findMany({
+          where: {
+            ...(dueDateFilter && { dueDate: dueDateFilter }),
+          },
+          orderBy: { dueDate: "asc" },
+          include: { sale: { include: { customer: true, serviceOrder: true } } },
+        })
+      : Promise.resolve([]),
     prisma.commission.findMany({
       orderBy: { createdAt: "desc" },
       include: { user: true, sale: { include: { serviceOrder: true } } },
     }),
   ]);
+
+  const clienteQuery = cliente?.trim().toLowerCase();
+  const installments = clienteQuery
+    ? installmentsRaw.filter((inst) => inst.sale.customer.name.toLowerCase().includes(clienteQuery))
+    : installmentsRaw;
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10 font-sans">
@@ -35,49 +70,101 @@ export default async function FinanceiroPage() {
       <h1 className="mb-6 text-2xl font-semibold text-black dark:text-zinc-50">Financeiro</h1>
 
       <h2 className="mb-3 text-lg font-semibold text-black dark:text-zinc-50">Contas a Receber</h2>
-      <div className="mb-10 overflow-x-auto rounded-lg border border-black/10 dark:border-white/10">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-black/5 text-zinc-600 dark:bg-white/5 dark:text-zinc-400">
-            <tr>
-              <th className="px-4 py-2">Venda</th>
-              <th className="px-4 py-2">Cliente</th>
-              <th className="px-4 py-2">Parcela</th>
-              <th className="px-4 py-2">Vencimento</th>
-              <th className="px-4 py-2">Valor</th>
-              <th className="px-4 py-2">Status</th>
-              {canEdit && <th className="px-4 py-2"></th>}
-            </tr>
-          </thead>
-          <tbody>
-            {installments.map((inst) => (
-              <tr key={inst.id} className="border-t border-black/10 dark:border-white/10">
-                <td className="px-4 py-2">
-                  <Link href={`/os/${inst.sale.serviceOrderId}`} className="hover:underline">
-                    Venda #{inst.sale.number}
-                  </Link>
-                </td>
-                <td className="px-4 py-2">{inst.sale.customer.name}</td>
-                <td className="px-4 py-2">{inst.number}</td>
-                <td className="px-4 py-2">{formatDate(inst.dueDate)}</td>
-                <td className="px-4 py-2">{currency(inst.amount)}</td>
-                <td className="px-4 py-2 capitalize">{inst.status}</td>
-                {canEdit && (
-                  <td className="px-4 py-2 text-right">
-                    {inst.status !== "pago" && <MarkPaidButton installmentId={inst.id} />}
-                  </td>
-                )}
-              </tr>
-            ))}
-            {installments.length === 0 && (
+
+      <form className="mb-4 flex flex-wrap items-end gap-3" action="/financeiro" method="get" autoComplete="off">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-zinc-500">De</label>
+          <input
+            type="date"
+            name="from"
+            defaultValue={from}
+            autoComplete="off"
+            className="rounded-md border border-black/10 bg-transparent px-3 py-1.5 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-zinc-50 dark:focus:border-white/30"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-zinc-500">Até</label>
+          <input
+            type="date"
+            name="to"
+            defaultValue={to}
+            autoComplete="off"
+            className="rounded-md border border-black/10 bg-transparent px-3 py-1.5 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-zinc-50 dark:focus:border-white/30"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-zinc-500">Cliente</label>
+          <input
+            type="text"
+            name="cliente"
+            defaultValue={cliente}
+            autoComplete="off"
+            placeholder="Nome do cliente"
+            className="rounded-md border border-black/10 bg-transparent px-3 py-1.5 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-zinc-50 dark:focus:border-white/30"
+          />
+        </div>
+        <button
+          type="submit"
+          className="rounded-md border border-black/10 px-4 py-1.5 text-sm font-medium text-black hover:bg-black/5 dark:border-white/10 dark:text-zinc-50 dark:hover:bg-white/5"
+        >
+          Filtrar
+        </button>
+        {hasFilter && (
+          <Link href="/financeiro" className="text-sm text-zinc-500 hover:underline">
+            Limpar filtro
+          </Link>
+        )}
+      </form>
+
+      {hasFilter ? (
+        <div className="mb-10 overflow-x-auto rounded-lg border border-black/10 dark:border-white/10">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-black/5 text-zinc-600 dark:bg-white/5 dark:text-zinc-400">
               <tr>
-                <td colSpan={canEdit ? 7 : 6} className="px-4 py-4 text-center text-zinc-500">
-                  Nenhuma conta a receber ainda.
-                </td>
+                <th className="px-4 py-2">Venda</th>
+                <th className="px-4 py-2">Cliente</th>
+                <th className="px-4 py-2">Parcela</th>
+                <th className="px-4 py-2">Vencimento</th>
+                <th className="px-4 py-2">Valor</th>
+                <th className="px-4 py-2">Status</th>
+                {canEdit && <th className="px-4 py-2"></th>}
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {installments.map((inst) => (
+                <tr key={inst.id} className="border-t border-black/10 dark:border-white/10">
+                  <td className="px-4 py-2">
+                    <Link href={`/os/${inst.sale.serviceOrderId}`} className="hover:underline">
+                      Venda #{inst.sale.number}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-2">{inst.sale.customer.name}</td>
+                  <td className="px-4 py-2">{inst.number}</td>
+                  <td className="px-4 py-2">{formatDate(inst.dueDate)}</td>
+                  <td className="px-4 py-2">{currency(inst.amount)}</td>
+                  <td className="px-4 py-2 capitalize">{inst.status}</td>
+                  {canEdit && (
+                    <td className="px-4 py-2 text-right">
+                      {inst.status !== "pago" && <MarkPaidButton installmentId={inst.id} />}
+                    </td>
+                  )}
+                </tr>
+              ))}
+              {installments.length === 0 && (
+                <tr>
+                  <td colSpan={canEdit ? 7 : 6} className="px-4 py-4 text-center text-zinc-500">
+                    Nenhuma conta a receber para o filtro selecionado.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="mb-10 text-sm text-zinc-500">
+          Use os filtros acima (período ou cliente) para pesquisar as contas a receber.
+        </p>
+      )}
 
       <h2 className="mb-3 text-lg font-semibold text-black dark:text-zinc-50">Comissões</h2>
       <div className="overflow-x-auto rounded-lg border border-black/10 dark:border-white/10">

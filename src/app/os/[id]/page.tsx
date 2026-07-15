@@ -19,6 +19,7 @@ function formatDateTime(date: Date | null) {
 export default async function OSDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requirePermission("os", "view");
   const canManageSale = can(user, "financeiro", "edit");
+  const canEditOS = can(user, "os", "edit");
 
   const { id } = await params;
   const order = await prisma.serviceOrder.findUnique({
@@ -48,9 +49,19 @@ export default async function OSDetailPage({ params }: { params: Promise<{ id: s
         <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">
           OS #{order.number}
         </h1>
-        <span className="rounded-full bg-black/5 px-3 py-1 text-sm capitalize dark:bg-white/10">
-          {order.status}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="rounded-full bg-black/5 px-3 py-1 text-sm capitalize dark:bg-white/10">
+            {order.status}
+          </span>
+          {canEditOS && (
+            <Link
+              href={`/os/${order.id}/editar`}
+              className="rounded-md border border-black/10 px-3 py-1.5 text-sm font-medium text-black hover:bg-black/5 dark:border-white/10 dark:text-zinc-50 dark:hover:bg-white/5"
+            >
+              Editar OS
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="mb-6 grid gap-4 rounded-lg border border-black/10 p-6 dark:border-white/10 sm:grid-cols-2">
