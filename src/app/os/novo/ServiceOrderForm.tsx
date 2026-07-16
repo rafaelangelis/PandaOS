@@ -17,6 +17,7 @@ type PartRow = {
 type ServiceRow = {
   key: string;
   description: string;
+  hours: number;
   unitPrice: number;
   startedAt: string;
   endedAt: string;
@@ -54,12 +55,6 @@ function todayLocalDate() {
   const now = new Date();
   const offset = now.getTimezoneOffset();
   return new Date(now.getTime() - offset * 60000).toISOString().slice(0, 10);
-}
-
-function nowLocalDateTime() {
-  const now = new Date();
-  const offset = now.getTimezoneOffset();
-  return new Date(now.getTime() - offset * 60000).toISOString().slice(0, 16);
 }
 
 export function ServiceOrderForm({
@@ -129,11 +124,11 @@ export function ServiceOrderForm({
   const [services, setServices] = useState<ServiceRow[]>(
     initialData?.services.length
       ? initialData.services.map((s) => ({ ...s, key: crypto.randomUUID() }))
-      : [{ key: crypto.randomUUID(), description: "", unitPrice: 0, startedAt: "", endedAt: "" }]
+      : [{ key: crypto.randomUUID(), description: "", hours: 1, unitPrice: 0, startedAt: "", endedAt: "" }]
   );
 
   const totalParts = parts.reduce((sum, p) => sum + p.quantity * p.unitPrice, 0);
-  const totalServices = services.reduce((sum, s) => sum + s.unitPrice, 0);
+  const totalServices = services.reduce((sum, s) => sum + s.hours * s.unitPrice, 0);
   const [discount, setDiscount] = useState(initialData?.discount ?? 0);
   const total = Math.max(0, totalParts + totalServices - discount);
 
@@ -491,7 +486,7 @@ export function ServiceOrderForm({
         <div className="flex flex-col gap-3">
           {services.map((service, i) => (
             <div key={service.key} className="flex flex-col gap-2 rounded-md border border-black/5 p-3 dark:border-white/5">
-              <div className="grid grid-cols-[1fr_120px_32px] gap-2">
+              <div className="grid grid-cols-[1fr_80px_120px_100px_32px] gap-2">
                 <input
                   type="text"
                   placeholder="Descrição do serviço"
@@ -506,9 +501,23 @@ export function ServiceOrderForm({
                 />
                 <input
                   type="number"
+                  step="0.5"
+                  min={0}
+                  placeholder="Horas"
+                  className={inputClass}
+                  value={service.hours}
+                  autoComplete="off"
+                  onChange={(e) => {
+                    const next = [...services];
+                    next[i] = { ...next[i], hours: Number(e.target.value) || 0 };
+                    setServices(next);
+                  }}
+                />
+                <input
+                  type="number"
                   step="0.01"
                   min={0}
-                  placeholder="Preço"
+                  placeholder="Valor/hora"
                   className={inputClass}
                   value={service.unitPrice}
                   autoComplete="off"
@@ -518,6 +527,9 @@ export function ServiceOrderForm({
                     setServices(next);
                   }}
                 />
+                <div className="flex items-center text-sm text-zinc-600 dark:text-zinc-400">
+                  {currency(service.hours * service.unitPrice)}
+                </div>
                 <button
                   type="button"
                   className="text-red-600 hover:text-red-700 dark:text-red-400"
@@ -525,58 +537,6 @@ export function ServiceOrderForm({
                   aria-label="Remover serviço"
                 >
                   ×
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs text-zinc-500">Início</label>
-                  <input
-                    type="datetime-local"
-                    className={inputClass}
-                    value={service.startedAt}
-                    autoComplete="off"
-                    onChange={(e) => {
-                      const next = [...services];
-                      next[i] = { ...next[i], startedAt: e.target.value };
-                      setServices(next);
-                    }}
-                  />
-                </div>
-                <button
-                  type="button"
-                  className="mt-5 h-fit self-start text-xs font-medium text-zinc-600 underline dark:text-zinc-400"
-                  onClick={() => {
-                    const next = [...services];
-                    next[i] = { ...next[i], startedAt: nowLocalDateTime() };
-                    setServices(next);
-                  }}
-                >
-                  Iniciar agora
-                </button>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs text-zinc-500">Fim</label>
-                  <input
-                    type="datetime-local"
-                    className={inputClass}
-                    value={service.endedAt}
-                    autoComplete="off"
-                    onChange={(e) => {
-                      const next = [...services];
-                      next[i] = { ...next[i], endedAt: e.target.value };
-                      setServices(next);
-                    }}
-                  />
-                </div>
-                <button
-                  type="button"
-                  className="mt-5 h-fit self-start text-xs font-medium text-zinc-600 underline dark:text-zinc-400"
-                  onClick={() => {
-                    const next = [...services];
-                    next[i] = { ...next[i], endedAt: nowLocalDateTime() };
-                    setServices(next);
-                  }}
-                >
-                  Finalizar agora
                 </button>
               </div>
             </div>
@@ -588,7 +548,7 @@ export function ServiceOrderForm({
           onClick={() =>
             setServices([
               ...services,
-              { key: crypto.randomUUID(), description: "", unitPrice: 0, startedAt: "", endedAt: "" },
+              { key: crypto.randomUUID(), description: "", hours: 1, unitPrice: 0, startedAt: "", endedAt: "" },
             ])
           }
         >

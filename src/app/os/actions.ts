@@ -17,6 +17,7 @@ type PartInput = {
 
 type ServiceInput = {
   description: string;
+  hours: number;
   unitPrice: number;
   startedAt: string | null;
   endedAt: string | null;
@@ -117,6 +118,7 @@ export async function createServiceOrder(
         services: {
           create: services.map((s) => ({
             description: s.description,
+            hours: s.hours || 1,
             unitPrice: s.unitPrice || 0,
             startedAt: s.startedAt ? new Date(s.startedAt) : null,
             endedAt: s.endedAt ? new Date(s.endedAt) : null,
@@ -233,6 +235,7 @@ export async function updateServiceOrder(
           deleteMany: {},
           create: services.map((s) => ({
             description: s.description,
+            hours: s.hours || 1,
             unitPrice: s.unitPrice || 0,
             startedAt: s.startedAt ? new Date(s.startedAt) : null,
             endedAt: s.endedAt ? new Date(s.endedAt) : null,

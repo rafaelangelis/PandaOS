@@ -35,7 +35,7 @@ export async function createSale(
   if (order.sale) return { error: "Esta OS já foi convertida em venda." };
 
   const totalParts = order.parts.reduce((s, p) => s + p.quantity * p.unitPrice, 0);
-  const totalServices = order.services.reduce((s, sv) => s + sv.unitPrice, 0);
+  const totalServices = order.services.reduce((s, sv) => s + sv.hours * sv.unitPrice, 0);
   const totalAmount = Math.max(0, totalParts + totalServices - order.discount);
 
   if (totalAmount <= 0) {

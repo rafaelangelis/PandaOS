@@ -24,11 +24,11 @@ function endOfDayUTC(dateStr: string) {
 export default async function FinanceiroPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; cliente?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; cliente?: string; status?: string; q?: string }>;
 }) {
   const user = await requirePermission("financeiro", "view");
   const canEdit = can(user, "financeiro", "edit");
-  const { from, to, cliente } = await searchParams;
+  const { from, to, cliente, status, q } = await searchParams;
 
   const dueDateFilter =
     from || to
@@ -38,13 +38,14 @@ export default async function FinanceiroPage({
         }
       : undefined;
 
-  const hasFilter = Boolean(from || to || cliente);
+  const hasFilter = Boolean(q);
 
-  const [installmentsRaw, commissions] = await Promise.all([
+  const [installmentsRaw, commissions, openTotal] = await Promise.all([
     hasFilter
       ? prisma.saleInstallment.findMany({
           where: {
             ...(dueDateFilter && { dueDate: dueDateFilter }),
+            ...(status && { status }),
           },
           orderBy: { dueDate: "asc" },
           include: { sale: { include: { customer: true, serviceOrder: true } } },
@@ -53,6 +54,11 @@ export default async function FinanceiroPage({
     prisma.commission.findMany({
       orderBy: { createdAt: "desc" },
       include: { user: true, sale: { include: { serviceOrder: true } } },
+    }),
+    prisma.saleInstallment.aggregate({
+      where: { status: "pendente" },
+      _sum: { amount: true },
+      _count: { _all: true },
     }),
   ]);
 
@@ -69,9 +75,26 @@ export default async function FinanceiroPage({
 
       <h1 className="mb-6 text-2xl font-semibold text-black dark:text-zinc-50">Financeiro</h1>
 
-      <h2 className="mb-3 text-lg font-semibold text-black dark:text-zinc-50">Contas a Receber</h2>
+      <h2 className="mb-1 text-lg font-semibold text-black dark:text-zinc-50">Contas a Receber</h2>
+      <p className="mb-4 text-sm text-zinc-500">
+        Total em aberto: <span className="font-medium text-black dark:text-zinc-50">{currency(openTotal._sum.amount ?? 0)}</span>{" "}
+        ({openTotal._count._all} {openTotal._count._all === 1 ? "parcela" : "parcelas"})
+      </p>
 
       <form className="mb-4 flex flex-wrap items-end gap-3" action="/financeiro" method="get" autoComplete="off">
+        <input type="hidden" name="q" value="1" />
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-zinc-500">Status</label>
+          <select
+            name="status"
+            defaultValue={status ?? "pendente"}
+            className="rounded-md border border-black/10 bg-transparent px-3 py-1.5 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-zinc-50 dark:focus:border-white/30"
+          >
+            <option value="">Todas</option>
+            <option value="pendente">Em aberto</option>
+            <option value="pago">Pagas</option>
+          </select>
+        </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-zinc-500">De</label>
           <input
@@ -162,7 +185,7 @@ export default async function FinanceiroPage({
         </div>
       ) : (
         <p className="mb-10 text-sm text-zinc-500">
-          Use os filtros acima (período ou cliente) para pesquisar as contas a receber.
+          Use os filtros acima (status, período ou cliente) para pesquisar as contas a receber.
         </p>
       )}
 

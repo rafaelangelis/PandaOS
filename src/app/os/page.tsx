@@ -132,7 +132,7 @@ export default async function OSListPage({
             <tbody>
               {orders.map((order) => {
                 const totalParts = order.parts.reduce((s, p) => s + p.quantity * p.unitPrice, 0);
-                const totalServices = order.services.reduce((s, sv) => s + sv.unitPrice, 0);
+                const totalServices = order.services.reduce((s, sv) => s + sv.hours * sv.unitPrice, 0);
                 const total = Math.max(0, totalParts + totalServices - order.discount);
                 return (
                   <tr key={order.id} className="border-t border-black/10 dark:border-white/10">

@@ -50,6 +50,7 @@ export default async function EditarOSPage({ params }: { params: Promise<{ id: s
     })),
     services: order.services.map((s) => ({
       description: s.description,
+      hours: s.hours,
       unitPrice: s.unitPrice,
       startedAt: toInputDateTime(s.startedAt),
       endedAt: toInputDateTime(s.endedAt),

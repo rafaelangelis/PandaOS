@@ -36,7 +36,7 @@ export default async function OSDetailPage({ params }: { params: Promise<{ id: s
   if (!order) notFound();
 
   const totalParts = order.parts.reduce((s, p) => s + p.quantity * p.unitPrice, 0);
-  const totalServices = order.services.reduce((s, sv) => s + sv.unitPrice, 0);
+  const totalServices = order.services.reduce((s, sv) => s + sv.hours * sv.unitPrice, 0);
   const total = Math.max(0, totalParts + totalServices - order.discount);
 
   return (
@@ -150,7 +150,9 @@ export default async function OSDetailPage({ params }: { params: Promise<{ id: s
                 <th className="py-1">Descrição</th>
                 <th className="py-1">Início</th>
                 <th className="py-1">Fim</th>
-                <th className="py-1 text-right">Preço</th>
+                <th className="py-1 text-right">Horas</th>
+                <th className="py-1 text-right">Valor/hora</th>
+                <th className="py-1 text-right">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -159,7 +161,9 @@ export default async function OSDetailPage({ params }: { params: Promise<{ id: s
                   <td className="py-1">{s.description}</td>
                   <td className="py-1">{formatDateTime(s.startedAt)}</td>
                   <td className="py-1">{formatDateTime(s.endedAt)}</td>
+                  <td className="py-1 text-right">{s.hours}</td>
                   <td className="py-1 text-right">{currency(s.unitPrice)}</td>
+                  <td className="py-1 text-right">{currency(s.hours * s.unitPrice)}</td>
                 </tr>
               ))}
             </tbody>
