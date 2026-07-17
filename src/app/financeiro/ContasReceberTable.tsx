@@ -19,16 +19,22 @@ export type InstallmentRow = {
   paidAtStr: string | null;
   amount: number;
   status: string;
+  accountName: string | null;
 };
+
+export type FinancialAccountOption = { id: string; name: string };
 
 export function ContasReceberTable({
   installments,
+  accounts,
   canEdit,
 }: {
   installments: InstallmentRow[];
+  accounts: FinancialAccountOption[];
   canEdit: boolean;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [accountId, setAccountId] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +61,7 @@ export function ContasReceberTable({
     if (selected.size === 0) return;
     setError(null);
     startTransition(async () => {
-      const result = await bulkMarkInstallmentsPaid(Array.from(selected));
+      const result = await bulkMarkInstallmentsPaid(Array.from(selected), accountId);
       if (result?.error) {
         setError(result.error);
         return;
@@ -78,6 +84,7 @@ export function ContasReceberTable({
               <th className="whitespace-nowrap px-4 py-2">Parcela</th>
               <th className="whitespace-nowrap px-4 py-2">Vencimento</th>
               <th className="whitespace-nowrap px-4 py-2">Data da baixa</th>
+              <th className="whitespace-nowrap px-4 py-2">Conta</th>
               <th className="whitespace-nowrap px-4 py-2">Valor</th>
               <th className="whitespace-nowrap px-4 py-2">Status</th>
               {canEdit && <th className="whitespace-nowrap px-4 py-2"></th>}
@@ -108,18 +115,19 @@ export function ContasReceberTable({
                 <td className="whitespace-nowrap px-4 py-2">{inst.number}</td>
                 <td className="whitespace-nowrap px-4 py-2">{inst.dueDateStr}</td>
                 <td className="whitespace-nowrap px-4 py-2">{inst.paidAtStr ?? "—"}</td>
+                <td className="whitespace-nowrap px-4 py-2">{inst.accountName ?? "—"}</td>
                 <td className="whitespace-nowrap px-4 py-2">{currency(inst.amount)}</td>
                 <td className="whitespace-nowrap px-4 py-2 capitalize">{inst.status}</td>
                 {canEdit && (
                   <td className="whitespace-nowrap px-4 py-2 text-right">
-                    {inst.status !== "pago" && <MarkPaidButton installmentId={inst.id} />}
+                    {inst.status !== "pago" && <MarkPaidButton installmentId={inst.id} accounts={accounts} />}
                   </td>
                 )}
               </tr>
             ))}
             {installments.length === 0 && (
               <tr>
-                <td colSpan={canEdit ? 9 : 8} className="whitespace-nowrap px-4 py-4 text-center text-zinc-500">
+                <td colSpan={canEdit ? 10 : 9} className="whitespace-nowrap px-4 py-4 text-center text-zinc-500">
                   Nenhuma conta a receber para o filtro selecionado.
                 </td>
               </tr>
@@ -130,14 +138,29 @@ export function ContasReceberTable({
 
       <div className="w-full shrink-0 rounded-lg border border-black/10 p-4 dark:border-white/10 lg:w-64">
         {canEdit && (
-          <button
-            type="button"
-            onClick={applyBaixa}
-            disabled={selected.size === 0 || isPending}
-            className="w-full rounded-md bg-black px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-          >
-            {isPending ? "Baixando..." : "Baixar selecionados"}
-          </button>
+          <>
+            <label className="mb-1 block text-xs font-medium text-zinc-500">Conta que recebeu</label>
+            <select
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              className="mb-3 w-full rounded-md border border-black/10 bg-transparent px-3 py-1.5 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-zinc-50 dark:focus:border-white/30"
+            >
+              <option value="">Selecione...</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={applyBaixa}
+              disabled={selected.size === 0 || isPending}
+              className="w-full rounded-md bg-black px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            >
+              {isPending ? "Baixando..." : "Baixar selecionados"}
+            </button>
+          </>
         )}
         {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
 

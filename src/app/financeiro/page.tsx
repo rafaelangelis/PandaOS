@@ -36,7 +36,7 @@ export default async function FinanceiroPage({
 
   const hasFilter = Boolean(q);
 
-  const [installmentsRaw, commissions, openTotal] = await Promise.all([
+  const [installmentsRaw, commissions, openTotal, accounts] = await Promise.all([
     hasFilter
       ? prisma.saleInstallment.findMany({
           where: {
@@ -44,7 +44,7 @@ export default async function FinanceiroPage({
             ...(status && { status }),
           },
           orderBy: { dueDate: "asc" },
-          include: { sale: { include: { customer: true, serviceOrder: true } } },
+          include: { sale: { include: { customer: true, serviceOrder: true } }, account: true },
         })
       : Promise.resolve([]),
     prisma.commission.findMany({
@@ -56,6 +56,7 @@ export default async function FinanceiroPage({
       _sum: { amount: true },
       _count: { _all: true },
     }),
+    prisma.financialAccount.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   const clienteQuery = cliente?.trim().toLowerCase();
@@ -148,7 +149,9 @@ export default async function FinanceiroPage({
               paidAtStr: inst.paidAt ? inst.paidAt.toLocaleDateString("pt-BR") : null,
               amount: inst.amount,
               status: inst.status,
+              accountName: inst.account?.name ?? null,
             }))}
+            accounts={accounts.map((a) => ({ id: a.id, name: a.name }))}
             canEdit={canEdit}
           />
         </div>

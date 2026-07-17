@@ -90,25 +90,33 @@ export async function createSale(
   return {};
 }
 
-export async function markInstallmentPaid(installmentId: string) {
+export async function markInstallmentPaid(installmentId: string, accountId: string): Promise<{ error?: string }> {
+  if (!accountId) {
+    return { error: "Selecione a conta que recebeu o pagamento." };
+  }
+
   await requirePermission("financeiro", "edit");
   await prisma.saleInstallment.update({
     where: { id: installmentId },
-    data: { status: "pago", paidAt: new Date() },
+    data: { status: "pago", paidAt: new Date(), accountId },
   });
   revalidatePath("/financeiro");
+  return {};
 }
 
-export async function bulkMarkInstallmentsPaid(ids: string[]): Promise<{ error?: string }> {
+export async function bulkMarkInstallmentsPaid(ids: string[], accountId: string): Promise<{ error?: string }> {
   if (!ids.length) {
     return { error: "Selecione ao menos uma conta a receber." };
+  }
+  if (!accountId) {
+    return { error: "Selecione a conta que recebeu o pagamento." };
   }
 
   await requirePermission("financeiro", "edit");
 
   await prisma.saleInstallment.updateMany({
     where: { id: { in: ids }, status: { not: "pago" } },
-    data: { status: "pago", paidAt: new Date() },
+    data: { status: "pago", paidAt: new Date(), accountId },
   });
 
   revalidatePath("/financeiro");

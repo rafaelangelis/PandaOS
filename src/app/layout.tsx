@@ -25,11 +25,12 @@ const MODULE_LINKS: Record<ModuleKey, NavLink> = {
   clientes: { href: "/clientes", label: "Clientes" },
   estoque: { href: "/estoque", label: "Estoque" },
   servicos: { href: "/servicos", label: "Serviços" },
+  contasFinanceiras: { href: "/contas-financeiras", label: "Contas Financeiras" },
   financeiro: { href: "/financeiro", label: "Financeiro" },
   usuarios: { href: "/usuarios", label: "Usuários" },
 };
 
-const CADASTRO_MODULES: ModuleKey[] = ["clientes", "estoque", "servicos", "usuarios"];
+const CADASTRO_MODULES: ModuleKey[] = ["clientes", "estoque", "servicos", "contasFinanceiras", "usuarios"];
 
 export default async function RootLayout({
   children,

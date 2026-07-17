@@ -131,6 +131,17 @@ model Service {
   updatedAt DateTime @updatedAt
 }
 
+model FinancialAccount {
+  id             String   @id @default(cuid())
+  name           String
+  type           String   @default("caixa")
+  initialBalance Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  installments SaleInstallment[]
+}
+
 model Sale {
   id              String   @id @default(cuid())
   number          Int      @unique
@@ -148,14 +159,16 @@ model Sale {
 }
 
 model SaleInstallment {
-  id      String    @id @default(cuid())
-  saleId  String
-  sale    Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  number  Int
-  amount  Float
-  dueDate DateTime
-  status  String    @default("pendente")
-  paidAt  DateTime?
+  id        String            @id @default(cuid())
+  saleId    String
+  sale      Sale              @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  number    Int
+  amount    Float
+  dueDate   DateTime
+  status    String            @default("pendente")
+  paidAt    DateTime?
+  accountId String?
+  account   FinancialAccount? @relation(fields: [accountId], references: [id])
 }
 
 model Commission {
