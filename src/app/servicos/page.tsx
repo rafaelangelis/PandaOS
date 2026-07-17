@@ -1,10 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requirePermission, can } from "@/lib/permissions";
-
-function currency(value: number) {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+import { ServicosTable } from "./ServicosTable";
 
 export default async function ServicosPage() {
   const user = await requirePermission("servicos", "view");
@@ -30,39 +27,7 @@ export default async function ServicosPage() {
         )}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-black/10 dark:border-white/10">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-black/5 text-zinc-600 dark:bg-white/5 dark:text-zinc-400">
-            <tr>
-              <th className="px-4 py-2">Nome</th>
-              <th className="px-4 py-2">Valor</th>
-              {canEdit && <th className="px-4 py-2"></th>}
-            </tr>
-          </thead>
-          <tbody>
-            {services.map((service) => (
-              <tr key={service.id} className="border-t border-black/10 dark:border-white/10">
-                <td className="px-4 py-2">{service.name}</td>
-                <td className="px-4 py-2">{currency(service.unitPrice)}</td>
-                {canEdit && (
-                  <td className="px-4 py-2 text-right">
-                    <Link href={`/servicos/${service.id}`} className="text-sm text-zinc-600 hover:underline dark:text-zinc-400">
-                      Editar
-                    </Link>
-                  </td>
-                )}
-              </tr>
-            ))}
-            {services.length === 0 && (
-              <tr>
-                <td colSpan={canEdit ? 3 : 2} className="px-4 py-4 text-center text-zinc-500">
-                  Nenhum serviço cadastrado ainda.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <ServicosTable services={services} canEdit={canEdit} />
     </div>
   );
 }

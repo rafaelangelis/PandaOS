@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requirePermission, can } from "@/lib/permissions";
 import { SaleForm } from "./SaleForm";
+import { CancelButton } from "../CancelButton";
 
 function currency(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -41,9 +42,9 @@ export default async function OSDetailPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10 font-sans">
-      <Link href="/os" className="mb-6 inline-block text-sm text-zinc-500 hover:underline">
-        ← Voltar para Ordens de Serviço
-      </Link>
+      <div className="mb-6">
+        <CancelButton />
+      </div>
 
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requirePermission, can } from "@/lib/permissions";
+import { ClientesTable } from "./ClientesTable";
 
 export default async function ClientesPage({
   searchParams,
@@ -45,39 +46,16 @@ export default async function ClientesPage({
         />
       </form>
 
-      <div className="overflow-x-auto rounded-lg border border-black/10 dark:border-white/10">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-black/5 text-zinc-600 dark:bg-white/5 dark:text-zinc-400">
-            <tr>
-              <th className="px-4 py-2">Nome</th>
-              <th className="px-4 py-2">Telefone</th>
-              <th className="px-4 py-2">E-mail</th>
-              <th className="px-4 py-2">OS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {customers.map((c) => (
-              <tr key={c.id} className="border-t border-black/10 dark:border-white/10">
-                <td className="px-4 py-2">
-                  <Link href={`/clientes/${c.id}`} className="font-medium text-black hover:underline dark:text-zinc-50">
-                    {c.name}
-                  </Link>
-                </td>
-                <td className="px-4 py-2">{c.phone ?? "—"}</td>
-                <td className="px-4 py-2">{c.email ?? "—"}</td>
-                <td className="px-4 py-2">{c._count.serviceOrders}</td>
-              </tr>
-            ))}
-            {customers.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-4 text-center text-zinc-500">
-                  {q ? "Nenhum cliente encontrado." : "Nenhum cliente cadastrado ainda."}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <ClientesTable
+        customers={customers.map((c) => ({
+          id: c.id,
+          name: c.name,
+          phone: c.phone,
+          email: c.email,
+          osCount: c._count.serviceOrders,
+        }))}
+        emptyMessage={q ? "Nenhum cliente encontrado." : "Nenhum cliente cadastrado ainda."}
+      />
     </div>
   );
 }
