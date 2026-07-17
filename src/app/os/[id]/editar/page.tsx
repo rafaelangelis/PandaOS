@@ -59,11 +59,9 @@ export default async function EditarOSPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10 font-sans">
-      <h1 className="mb-6 text-2xl font-semibold text-black dark:text-zinc-50">
-        Editar OS #{order.number}
-      </h1>
       <ServiceOrderForm
         mode="edit"
+        title={`Editar OS #${order.number}`}
         serviceOrderId={order.id}
         initialData={initialData}
         customers={customers.map((c) => ({ id: c.id, name: c.name, phone: c.phone }))}

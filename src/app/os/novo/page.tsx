@@ -13,10 +13,8 @@ export default async function NovaOSPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10 font-sans">
-      <h1 className="mb-6 text-2xl font-semibold text-black dark:text-zinc-50">
-        Nova Ordem de Serviço
-      </h1>
       <ServiceOrderForm
+        title="Nova Ordem de Serviço"
         customers={customers.map((c) => ({ id: c.id, name: c.name, phone: c.phone }))}
         technicians={technicians.map((t) => ({ id: t.id, name: t.name }))}
         inventoryParts={parts.map((p) => ({

@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/permissions";
 
@@ -254,4 +255,24 @@ export async function updateServiceOrder(
   });
 
   redirect(`/os/${serviceOrderId}`);
+}
+
+export async function bulkUpdateServiceOrderStatus(
+  ids: string[],
+  status: string
+): Promise<{ error?: string }> {
+  const trimmed = status.trim();
+  if (!ids.length || !trimmed) {
+    return { error: "Selecione ao menos uma OS e um status." };
+  }
+
+  await requirePermission("os", "edit");
+
+  await prisma.serviceOrder.updateMany({
+    where: { id: { in: ids } },
+    data: { status: trimmed },
+  });
+
+  revalidatePath("/os");
+  return {};
 }

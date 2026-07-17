@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { createServiceOrder, updateServiceOrder, type ServiceOrderState } from "../actions";
+import { CancelButton } from "../CancelButton";
 
 type Customer = { id: string; name: string; phone: string | null };
 type Technician = { id: string; name: string };
@@ -62,6 +63,7 @@ export function ServiceOrderForm({
   technicians,
   inventoryParts,
   mode = "create",
+  title,
   serviceOrderId,
   initialData,
 }: {
@@ -69,6 +71,7 @@ export function ServiceOrderForm({
   technicians: Technician[];
   inventoryParts: InventoryPart[];
   mode?: "create" | "edit";
+  title?: string;
   serviceOrderId?: string;
   initialData?: ServiceOrderInitialData;
 }) {
@@ -134,6 +137,19 @@ export function ServiceOrderForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-8" autoComplete="off">
+      <div className="sticky top-14 z-40 -mx-6 flex flex-wrap items-center justify-between gap-3 border-b border-black/10 bg-zinc-50/95 px-6 py-3 backdrop-blur dark:border-white/10 dark:bg-black/95">
+        <h1 className="text-xl font-semibold text-black dark:text-zinc-50">{title}</h1>
+        <div className="flex items-center gap-3">
+          <CancelButton />
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+          >
+            {pending ? "Salvando..." : mode === "edit" ? "Salvar alterações" : "Salvar Ordem de Serviço"}
+          </button>
+        </div>
+      </div>
       <section className="flex flex-col gap-4 rounded-lg border border-black/10 p-6 dark:border-white/10">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="relative flex flex-col gap-1">
@@ -630,16 +646,6 @@ export function ServiceOrderForm({
       )}
 
       {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
-
-      <div className="flex justify-end gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-black px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-        >
-          {pending ? "Salvando..." : mode === "edit" ? "Salvar alterações" : "Salvar Ordem de Serviço"}
-        </button>
-      </div>
     </form>
   );
 }

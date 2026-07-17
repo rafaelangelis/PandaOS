@@ -1,14 +1,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requirePermission, can } from "@/lib/permissions";
-import { MarkPaidButton } from "./MarkPaidButton";
+import { ContasReceberTable } from "./ContasReceberTable";
 
 function currency(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function formatDate(date: Date) {
-  return date.toLocaleDateString("pt-BR", { timeZone: "UTC" });
 }
 
 function startOfDayUTC(dateStr: string) {
@@ -140,48 +136,20 @@ export default async function FinanceiroPage({
       </form>
 
       {hasFilter ? (
-        <div className="mb-10 overflow-x-auto rounded-lg border border-black/10 dark:border-white/10">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-black/5 text-zinc-600 dark:bg-white/5 dark:text-zinc-400">
-              <tr>
-                <th className="px-4 py-2">Venda</th>
-                <th className="px-4 py-2">Cliente</th>
-                <th className="px-4 py-2">Parcela</th>
-                <th className="px-4 py-2">Vencimento</th>
-                <th className="px-4 py-2">Valor</th>
-                <th className="px-4 py-2">Status</th>
-                {canEdit && <th className="px-4 py-2"></th>}
-              </tr>
-            </thead>
-            <tbody>
-              {installments.map((inst) => (
-                <tr key={inst.id} className="border-t border-black/10 dark:border-white/10">
-                  <td className="px-4 py-2">
-                    <Link href={`/os/${inst.sale.serviceOrderId}`} className="hover:underline">
-                      Venda #{inst.sale.number}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2">{inst.sale.customer.name}</td>
-                  <td className="px-4 py-2">{inst.number}</td>
-                  <td className="px-4 py-2">{formatDate(inst.dueDate)}</td>
-                  <td className="px-4 py-2">{currency(inst.amount)}</td>
-                  <td className="px-4 py-2 capitalize">{inst.status}</td>
-                  {canEdit && (
-                    <td className="px-4 py-2 text-right">
-                      {inst.status !== "pago" && <MarkPaidButton installmentId={inst.id} />}
-                    </td>
-                  )}
-                </tr>
-              ))}
-              {installments.length === 0 && (
-                <tr>
-                  <td colSpan={canEdit ? 7 : 6} className="px-4 py-4 text-center text-zinc-500">
-                    Nenhuma conta a receber para o filtro selecionado.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="mb-10">
+          <ContasReceberTable
+            installments={installments.map((inst) => ({
+              id: inst.id,
+              saleNumber: inst.sale.number,
+              serviceOrderId: inst.sale.serviceOrderId,
+              customerName: inst.sale.customer.name,
+              number: inst.number,
+              dueDateStr: inst.dueDate.toLocaleDateString("pt-BR", { timeZone: "UTC" }),
+              amount: inst.amount,
+              status: inst.status,
+            }))}
+            canEdit={canEdit}
+          />
         </div>
       ) : (
         <p className="mb-10 text-sm text-zinc-500">

@@ -1,10 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requirePermission, can } from "@/lib/permissions";
-
-function currency(value: number) {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+import { OSListTable } from "./OSListTable";
 
 function startOfDayUTC(dateStr: string) {
   return new Date(`${dateStr}T00:00:00.000Z`);
@@ -38,14 +35,35 @@ export default async function OSListPage({
         }
       : undefined;
 
-  const orders = await prisma.serviceOrder.findMany({
-    where: {
-      ...(status && { status }),
-      ...(entryDateFilter && { entryDate: entryDateFilter }),
-    },
-    orderBy: { number: "desc" },
-    include: { customer: true, technician: true, parts: true, services: true },
+  const [orders, distinctStatuses] = await Promise.all([
+    prisma.serviceOrder.findMany({
+      where: {
+        ...(status && { status }),
+        ...(entryDateFilter && { entryDate: entryDateFilter }),
+      },
+      orderBy: { number: "desc" },
+      include: { customer: true, technician: true, parts: true, services: true },
+    }),
+    prisma.serviceOrder.groupBy({ by: ["status"] }),
+  ]);
+
+  const ordersWithTotal = orders.map((order) => {
+    const totalParts = order.parts.reduce((s, p) => s + p.quantity * p.unitPrice, 0);
+    const totalServices = order.services.reduce((s, sv) => s + sv.hours * sv.unitPrice, 0);
+    return {
+      id: order.id,
+      number: order.number,
+      customerName: order.customer.name,
+      technicianName: order.technician?.name ?? null,
+      status: order.status,
+      entryDateStr: order.entryDate.toLocaleDateString("pt-BR", { timeZone: "UTC" }),
+      total: Math.max(0, totalParts + totalServices - order.discount),
+    };
   });
+  const grandTotal = ordersWithTotal.reduce((s, o) => s + o.total, 0);
+  const statusOptions = distinctStatuses.length
+    ? distinctStatuses.map((s) => s.status)
+    : ["aberta", "finalizado"];
 
   const statusQS = status ? `status=${encodeURIComponent(status)}` : "";
 
@@ -117,43 +135,7 @@ export default async function OSListPage({
           {status ? `Nenhuma ordem de serviço com status "${status}" no período selecionado.` : "Nenhuma ordem de serviço no período selecionado."}
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-black/10 dark:border-white/10">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-black/5 text-zinc-600 dark:bg-white/5 dark:text-zinc-400">
-              <tr>
-                <th className="px-4 py-2">Nº</th>
-                <th className="px-4 py-2">Cliente</th>
-                <th className="px-4 py-2">Técnico</th>
-                <th className="px-4 py-2">Status</th>
-                <th className="px-4 py-2">Entrada</th>
-                <th className="px-4 py-2 text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => {
-                const totalParts = order.parts.reduce((s, p) => s + p.quantity * p.unitPrice, 0);
-                const totalServices = order.services.reduce((s, sv) => s + sv.hours * sv.unitPrice, 0);
-                const total = Math.max(0, totalParts + totalServices - order.discount);
-                return (
-                  <tr key={order.id} className="border-t border-black/10 dark:border-white/10">
-                    <td className="px-4 py-2">
-                      <Link href={`/os/${order.id}`} className="font-medium text-black hover:underline dark:text-zinc-50">
-                        #{order.number}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2">{order.customer.name}</td>
-                    <td className="px-4 py-2">{order.technician?.name ?? "—"}</td>
-                    <td className="px-4 py-2 capitalize">{order.status}</td>
-                    <td className="px-4 py-2">
-                      {order.entryDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
-                    </td>
-                    <td className="px-4 py-2 text-right">{currency(total)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <OSListTable orders={ordersWithTotal} canEdit={canEdit} statusOptions={statusOptions} grandTotal={grandTotal} />
       )}
     </div>
   );

@@ -69,7 +69,7 @@ export async function createSale(
       },
     });
 
-    await tx.serviceOrder.update({ where: { id: order.id }, data: { status: "vendida" } });
+    await tx.serviceOrder.update({ where: { id: order.id }, data: { status: "finalizado" } });
 
     if (order.technicianId && order.technician && order.technician.commissionRate > 0) {
       const rate = order.technician.commissionRate;
@@ -97,4 +97,20 @@ export async function markInstallmentPaid(installmentId: string) {
     data: { status: "pago", paidAt: new Date() },
   });
   revalidatePath("/financeiro");
+}
+
+export async function bulkMarkInstallmentsPaid(ids: string[]): Promise<{ error?: string }> {
+  if (!ids.length) {
+    return { error: "Selecione ao menos uma conta a receber." };
+  }
+
+  await requirePermission("financeiro", "edit");
+
+  await prisma.saleInstallment.updateMany({
+    where: { id: { in: ids }, status: { not: "pago" } },
+    data: { status: "pago", paidAt: new Date() },
+  });
+
+  revalidatePath("/financeiro");
+  return {};
 }
