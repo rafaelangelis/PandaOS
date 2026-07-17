@@ -36,7 +36,7 @@ export default async function FinanceiroPage({
 
   const hasFilter = Boolean(q);
 
-  const [installmentsRaw, commissions, openTotal, accounts] = await Promise.all([
+  const [installmentsRaw, openTotal, accounts] = await Promise.all([
     hasFilter
       ? prisma.saleInstallment.findMany({
           where: {
@@ -47,10 +47,6 @@ export default async function FinanceiroPage({
           include: { sale: { include: { customer: true, serviceOrder: true } }, account: true },
         })
       : Promise.resolve([]),
-    prisma.commission.findMany({
-      orderBy: { createdAt: "desc" },
-      include: { user: true, sale: { include: { serviceOrder: true } } },
-    }),
     prisma.saleInstallment.aggregate({
       where: { status: "pendente" },
       _sum: { amount: true },
@@ -160,43 +156,6 @@ export default async function FinanceiroPage({
           Use os filtros acima (status, período ou cliente) para pesquisar as contas a receber.
         </p>
       )}
-
-      <h2 className="mb-3 text-lg font-semibold text-black dark:text-zinc-50">Comissões</h2>
-      <div className="overflow-x-auto rounded-lg border border-black/10 dark:border-white/10">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-black/5 text-zinc-600 dark:bg-white/5 dark:text-zinc-400">
-            <tr>
-              <th className="px-4 py-2">Técnico</th>
-              <th className="px-4 py-2">Venda</th>
-              <th className="px-4 py-2">Base (serviços)</th>
-              <th className="px-4 py-2">Taxa</th>
-              <th className="px-4 py-2">Comissão</th>
-            </tr>
-          </thead>
-          <tbody>
-            {commissions.map((c) => (
-              <tr key={c.id} className="border-t border-black/10 dark:border-white/10">
-                <td className="px-4 py-2">{c.user.name}</td>
-                <td className="px-4 py-2">
-                  <Link href={`/os/${c.sale.serviceOrder.id}`} className="hover:underline">
-                    Venda #{c.sale.number}
-                  </Link>
-                </td>
-                <td className="px-4 py-2">{currency(c.baseAmount)}</td>
-                <td className="px-4 py-2">{c.rate}%</td>
-                <td className="px-4 py-2">{currency(c.amount)}</td>
-              </tr>
-            ))}
-            {commissions.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-4 py-4 text-center text-zinc-500">
-                  Nenhuma comissão gerada ainda.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }

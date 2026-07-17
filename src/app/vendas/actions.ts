@@ -28,7 +28,7 @@ export async function createSale(
 
   const order = await prisma.serviceOrder.findUnique({
     where: { id: serviceOrderId },
-    include: { parts: true, services: true, sale: true, technician: true },
+    include: { parts: true, services: true, sale: true },
   });
 
   if (!order) return { error: "Ordem de serviço não encontrada." };
@@ -70,19 +70,6 @@ export async function createSale(
     });
 
     await tx.serviceOrder.update({ where: { id: order.id }, data: { status: "finalizado" } });
-
-    if (order.technicianId && order.technician && order.technician.commissionRate > 0) {
-      const rate = order.technician.commissionRate;
-      await tx.commission.create({
-        data: {
-          saleId: sale.id,
-          userId: order.technicianId,
-          baseAmount: totalServices,
-          rate,
-          amount: Math.round(totalServices * (rate / 100) * 100) / 100,
-        },
-      });
-    }
   });
 
   revalidatePath(`/os/${serviceOrderId}`);

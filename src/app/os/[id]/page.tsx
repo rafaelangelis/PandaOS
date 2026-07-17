@@ -29,7 +29,7 @@ export default async function OSDetailPage({ params }: { params: Promise<{ id: s
       technician: true,
       parts: true,
       services: true,
-      sale: { include: { installments: true, commission: { include: { user: true } } } },
+      sale: { include: { installments: true } },
     },
   });
 
@@ -210,13 +210,6 @@ export default async function OSDetailPage({ params }: { params: Promise<{ id: s
               ))}
             </tbody>
           </table>
-
-          {order.sale.commission && (
-            <p className="text-sm text-zinc-500">
-              Comissão de {order.sale.commission.user.name}: {currency(order.sale.commission.amount)} (
-              {order.sale.commission.rate}% sobre {currency(order.sale.commission.baseAmount)} em serviços)
-            </p>
-          )}
         </div>
       )}
     </div>

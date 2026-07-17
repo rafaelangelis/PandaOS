@@ -33,7 +33,6 @@ export default async function UsuariosPage() {
               <th className="px-4 py-2">Nome</th>
               <th className="px-4 py-2">Usuário</th>
               <th className="px-4 py-2">Grupo</th>
-              <th className="px-4 py-2">Comissão</th>
               <th className="px-4 py-2"></th>
             </tr>
           </thead>
@@ -45,7 +44,6 @@ export default async function UsuariosPage() {
                 </td>
                 <td className="px-4 py-2">{u.username}</td>
                 <td className="px-4 py-2">{u.permissionGroup?.name ?? "—"}</td>
-                <td className="px-4 py-2">{u.commissionRate}%</td>
                 <td className="px-4 py-2 text-right">
                   <Link href={`/usuarios/${u.id}`} className="text-sm text-zinc-600 hover:underline dark:text-zinc-400">
                     Editar

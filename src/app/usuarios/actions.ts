@@ -75,7 +75,6 @@ export async function createUser(
   const username = String(formData.get("username") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const name = String(formData.get("name") ?? "").trim();
-  const commissionRate = Number(formData.get("commissionRate") ?? 0) || 0;
   const permissionGroupId = String(formData.get("permissionGroupId") ?? "") || null;
 
   if (!username || !password || !name) {
@@ -87,7 +86,7 @@ export async function createUser(
 
   const hashed = await bcrypt.hash(password, 10);
   await prisma.user.create({
-    data: { username, password: hashed, name, commissionRate, permissionGroupId },
+    data: { username, password: hashed, name, permissionGroupId },
   });
 
   redirect("/usuarios");
@@ -101,7 +100,6 @@ export async function updateUser(
   await requirePermission("usuarios", "edit");
 
   const name = String(formData.get("name") ?? "").trim();
-  const commissionRate = Number(formData.get("commissionRate") ?? 0) || 0;
   const permissionGroupId = String(formData.get("permissionGroupId") ?? "") || null;
 
   if (!name) return { error: "Informe o nome." };
@@ -126,7 +124,7 @@ export async function updateUser(
   });
 
   await prisma.$transaction([
-    prisma.user.update({ where: { id: userId }, data: { name, commissionRate, permissionGroupId } }),
+    prisma.user.update({ where: { id: userId }, data: { name, permissionGroupId } }),
     ...overrideOps,
   ]);
 

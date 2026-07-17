@@ -21,7 +21,6 @@ export default async function EditUserPage({ params }: { params: Promise<{ id: s
       <EditUserForm
         userId={user.id}
         name={user.name}
-        commissionRate={user.commissionRate}
         permissionGroupId={user.permissionGroupId}
         overrides={user.permissionOverrides}
         groups={groups.map((g) => ({ id: g.id, name: g.name }))}

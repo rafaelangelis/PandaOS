@@ -276,7 +276,7 @@ export async function bulkUpdateServiceOrderStatus(
 
     const orders = await prisma.serviceOrder.findMany({
       where: { id: { in: ids }, sale: null },
-      include: { parts: true, services: true, technician: true },
+      include: { parts: true, services: true },
     });
 
     for (const order of orders) {
@@ -289,34 +289,19 @@ export async function bulkUpdateServiceOrderStatus(
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 30);
 
-      await prisma.$transaction(async (tx) => {
-        const last = await tx.sale.findFirst({ orderBy: { number: "desc" }, select: { number: true } });
-        const number = (last?.number ?? 0) + 1;
+      const last = await prisma.sale.findFirst({ orderBy: { number: "desc" }, select: { number: true } });
+      const number = (last?.number ?? 0) + 1;
 
-        const sale = await tx.sale.create({
-          data: {
-            number,
-            serviceOrderId: order.id,
-            customerId: order.customerId,
-            paymentMethod: "A definir",
-            totalAmount,
-            discount: order.discount,
-            installments: { create: [{ number: 1, amount: totalAmount, dueDate }] },
-          },
-        });
-
-        if (order.technicianId && order.technician && order.technician.commissionRate > 0) {
-          const rate = order.technician.commissionRate;
-          await tx.commission.create({
-            data: {
-              saleId: sale.id,
-              userId: order.technicianId,
-              baseAmount: totalServices,
-              rate,
-              amount: Math.round(totalServices * (rate / 100) * 100) / 100,
-            },
-          });
-        }
+      await prisma.sale.create({
+        data: {
+          number,
+          serviceOrderId: order.id,
+          customerId: order.customerId,
+          paymentMethod: "A definir",
+          totalAmount,
+          discount: order.discount,
+          installments: { create: [{ number: 1, amount: totalAmount, dueDate }] },
+        },
       });
     }
   }

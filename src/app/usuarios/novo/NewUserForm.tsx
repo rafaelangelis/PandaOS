@@ -36,10 +36,6 @@ export function NewUserForm({ groups }: { groups: { id: string; name: string }[]
           ))}
         </select>
       </div>
-      <div className="flex flex-col gap-1 sm:w-48">
-        <label className={labelClass}>Comissão (%)</label>
-        <input type="number" step="0.01" min={0} name="commissionRate" defaultValue={0} className={inputClass} />
-      </div>
 
       {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
 

@@ -20,14 +20,12 @@ function overrideValue(v: boolean | null | undefined) {
 export function EditUserForm({
   userId,
   name,
-  commissionRate,
   permissionGroupId,
   overrides,
   groups,
 }: {
   userId: string;
   name: string;
-  commissionRate: number;
   permissionGroupId: string | null;
   overrides: Override[];
   groups: { id: string; name: string }[];
@@ -51,17 +49,6 @@ export function EditUserForm({
             </option>
           ))}
         </select>
-      </div>
-      <div className="flex flex-col gap-1 sm:w-48">
-        <label className={labelClass}>Comissão (%)</label>
-        <input
-          type="number"
-          step="0.01"
-          min={0}
-          name="commissionRate"
-          defaultValue={commissionRate}
-          className={inputClass}
-        />
       </div>
 
       <div>
