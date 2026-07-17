@@ -3,6 +3,7 @@ export const MODULES = [
   { key: "clientes", label: "Clientes" },
   { key: "financeiro", label: "Financeiro" },
   { key: "estoque", label: "Estoque" },
+  { key: "servicos", label: "Serviços" },
   { key: "usuarios", label: "Usuários e Permissões" },
 ] as const;
 

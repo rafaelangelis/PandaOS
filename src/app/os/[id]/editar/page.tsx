@@ -16,7 +16,7 @@ export default async function EditarOSPage({ params }: { params: Promise<{ id: s
 
   const { id } = await params;
 
-  const [order, customers, technicians, inventoryParts] = await Promise.all([
+  const [order, customers, technicians, inventoryParts, services] = await Promise.all([
     prisma.serviceOrder.findUnique({
       where: { id },
       include: { customer: true, technician: true, parts: true, services: true },
@@ -24,6 +24,7 @@ export default async function EditarOSPage({ params }: { params: Promise<{ id: s
     prisma.customer.findMany({ orderBy: { name: "asc" } }),
     prisma.user.findMany({ orderBy: { name: "asc" } }),
     prisma.part.findMany({ orderBy: { name: "asc" } }),
+    prisma.service.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   if (!order) notFound();
@@ -72,6 +73,7 @@ export default async function EditarOSPage({ params }: { params: Promise<{ id: s
           quantity: p.quantity,
           unitPrice: p.unitPrice,
         }))}
+        serviceCatalog={services.map((s) => ({ id: s.id, name: s.name, unitPrice: s.unitPrice }))}
       />
     </div>
   );

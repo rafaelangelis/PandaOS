@@ -24,9 +24,12 @@ const MODULE_LINKS: Record<ModuleKey, NavLink> = {
   os: { href: "/os", label: "Ordens de Serviço" },
   clientes: { href: "/clientes", label: "Clientes" },
   estoque: { href: "/estoque", label: "Estoque" },
+  servicos: { href: "/servicos", label: "Serviços" },
   financeiro: { href: "/financeiro", label: "Financeiro" },
   usuarios: { href: "/usuarios", label: "Usuários" },
 };
+
+const CADASTRO_MODULES: ModuleKey[] = ["clientes", "estoque", "servicos", "usuarios"];
 
 export default async function RootLayout({
   children,
@@ -40,9 +43,13 @@ export default async function RootLayout({
           ? [{ href: "/dashboard", label: "Dashboard" }]
           : []),
         ...(Object.keys(MODULE_LINKS) as ModuleKey[])
-          .filter((key) => can(user, key, "view"))
+          .filter((key) => !CADASTRO_MODULES.includes(key) && can(user, key, "view"))
           .map((key) => MODULE_LINKS[key]),
       ]
+    : [];
+
+  const cadastroLinks = user
+    ? CADASTRO_MODULES.filter((key) => can(user, key, "view")).map((key) => MODULE_LINKS[key])
     : [];
 
   return (
@@ -51,7 +58,7 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {user && <TopNav links={links} userName={user.name} />}
+        {user && <TopNav links={links} groupedLinks={cadastroLinks} userName={user.name} />}
         {children}
       </body>
     </html>

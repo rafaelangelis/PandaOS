@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useMemo, useRef, useState } from "react";
 import { createServiceOrder, updateServiceOrder, type ServiceOrderState } from "../actions";
 import { CancelButton } from "../CancelButton";
 
 type Customer = { id: string; name: string; phone: string | null };
 type Technician = { id: string; name: string };
 type InventoryPart = { id: string; name: string; quantity: number; unitPrice: number };
+type CatalogService = { id: string; name: string; unitPrice: number };
 
 type PartRow = {
   key: string;
@@ -62,6 +63,7 @@ export function ServiceOrderForm({
   customers,
   technicians,
   inventoryParts,
+  serviceCatalog,
   mode = "create",
   title,
   serviceOrderId,
@@ -70,6 +72,7 @@ export function ServiceOrderForm({
   customers: Customer[];
   technicians: Technician[];
   inventoryParts: InventoryPart[];
+  serviceCatalog: CatalogService[];
   mode?: "create" | "edit";
   title?: string;
   serviceOrderId?: string;
@@ -129,6 +132,11 @@ export function ServiceOrderForm({
       ? initialData.services.map((s) => ({ ...s, key: crypto.randomUUID() }))
       : [{ key: crypto.randomUUID(), description: "", hours: 1, unitPrice: 0, startedAt: "", endedAt: "" }]
   );
+  const [openServiceDropdown, setOpenServiceDropdown] = useState<string | null>(null);
+  const [serviceHighlight, setServiceHighlight] = useState(-1);
+
+  const partDescriptionRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+  const serviceDescriptionRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   const totalParts = parts.reduce((sum, p) => sum + p.quantity * p.unitPrice, 0);
   const totalServices = services.reduce((sum, s) => sum + s.hours * s.unitPrice, 0);
@@ -380,6 +388,10 @@ export function ServiceOrderForm({
                   <div className="relative">
                     <input
                       type="text"
+                      ref={(el) => {
+                        if (el) partDescriptionRefs.current.set(part.key, el);
+                        else partDescriptionRefs.current.delete(part.key);
+                      }}
                       placeholder="Descrição da peça (ou busque no estoque)"
                       className={inputClass + " w-full"}
                       value={part.description}
@@ -485,12 +497,11 @@ export function ServiceOrderForm({
         <button
           type="button"
           className="self-start text-sm font-medium text-zinc-600 underline dark:text-zinc-400"
-          onClick={() =>
-            setParts([
-              ...parts,
-              { key: crypto.randomUUID(), partId: "", description: "", quantity: 1, unitPrice: 0 },
-            ])
-          }
+          onClick={() => {
+            const newKey = crypto.randomUUID();
+            setParts([...parts, { key: newKey, partId: "", description: "", quantity: 1, unitPrice: 0 }]);
+            requestAnimationFrame(() => partDescriptionRefs.current.get(newKey)?.focus());
+          }}
         >
           + Adicionar peça
         </button>
@@ -500,73 +511,143 @@ export function ServiceOrderForm({
       <section className="flex flex-col gap-3 rounded-lg border border-black/10 p-6 dark:border-white/10">
         <h2 className="text-lg font-semibold text-black dark:text-zinc-50">Serviços executados</h2>
         <div className="flex flex-col gap-3">
-          {services.map((service, i) => (
-            <div key={service.key} className="flex flex-col gap-2 rounded-md border border-black/5 p-3 dark:border-white/5">
-              <div className="grid grid-cols-[1fr_80px_120px_100px_32px] gap-2">
-                <input
-                  type="text"
-                  placeholder="Descrição do serviço"
-                  className={inputClass}
-                  value={service.description}
-                  autoComplete="off"
-                  onChange={(e) => {
-                    const next = [...services];
-                    next[i] = { ...next[i], description: e.target.value };
-                    setServices(next);
-                  }}
-                />
-                <input
-                  type="number"
-                  step="0.5"
-                  min={0}
-                  placeholder="Horas"
-                  className={inputClass}
-                  value={service.hours}
-                  autoComplete="off"
-                  onChange={(e) => {
-                    const next = [...services];
-                    next[i] = { ...next[i], hours: Number(e.target.value) || 0 };
-                    setServices(next);
-                  }}
-                />
-                <input
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  placeholder="Valor/hora"
-                  className={inputClass}
-                  value={service.unitPrice}
-                  autoComplete="off"
-                  onChange={(e) => {
-                    const next = [...services];
-                    next[i] = { ...next[i], unitPrice: Number(e.target.value) || 0 };
-                    setServices(next);
-                  }}
-                />
-                <div className="flex items-center text-sm text-zinc-600 dark:text-zinc-400">
-                  {currency(service.hours * service.unitPrice)}
+          {services.map((service, i) => {
+            const filteredCatalog = service.description.trim()
+              ? serviceCatalog
+                  .filter((s) => s.name.toLowerCase().includes(service.description.toLowerCase()))
+                  .slice(0, 8)
+              : [];
+
+            const selectCatalogService = (catalogService: CatalogService) => {
+              const next = [...services];
+              next[i] = {
+                ...next[i],
+                description: catalogService.name,
+                unitPrice: catalogService.unitPrice,
+              };
+              setServices(next);
+              setOpenServiceDropdown(null);
+              setServiceHighlight(-1);
+            };
+
+            return (
+              <div key={service.key} className="flex flex-col gap-2 rounded-md border border-black/5 p-3 dark:border-white/5">
+                <div className="grid grid-cols-[1fr_80px_120px_100px_32px] gap-2">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      ref={(el) => {
+                        if (el) serviceDescriptionRefs.current.set(service.key, el);
+                        else serviceDescriptionRefs.current.delete(service.key);
+                      }}
+                      placeholder="Descrição do serviço (ou busque no cadastro)"
+                      className={inputClass + " w-full"}
+                      value={service.description}
+                      autoComplete="off"
+                      onChange={(e) => {
+                        const next = [...services];
+                        next[i] = { ...next[i], description: e.target.value };
+                        setServices(next);
+                        setOpenServiceDropdown(service.key);
+                        setServiceHighlight(-1);
+                      }}
+                      onFocus={() => {
+                        setOpenServiceDropdown(service.key);
+                        setServiceHighlight(-1);
+                      }}
+                      onBlur={() => setTimeout(() => setOpenServiceDropdown(null), 150)}
+                      onKeyDown={(e) => {
+                        if (openServiceDropdown !== service.key || filteredCatalog.length === 0) return;
+                        if (e.key === "ArrowDown") {
+                          e.preventDefault();
+                          setServiceHighlight((h) => (h + 1) % filteredCatalog.length);
+                        } else if (e.key === "ArrowUp") {
+                          e.preventDefault();
+                          setServiceHighlight((h) => (h <= 0 ? filteredCatalog.length - 1 : h - 1));
+                        } else if (e.key === "Enter" && serviceHighlight >= 0) {
+                          e.preventDefault();
+                          selectCatalogService(filteredCatalog[serviceHighlight]);
+                        } else if (e.key === "Escape") {
+                          setOpenServiceDropdown(null);
+                          setServiceHighlight(-1);
+                        }
+                      }}
+                    />
+                    {openServiceDropdown === service.key && filteredCatalog.length > 0 && (
+                      <ul className="absolute top-full z-10 mt-1 w-full rounded-md border border-black/10 bg-white shadow-lg dark:border-white/10 dark:bg-zinc-950">
+                        {filteredCatalog.map((catalogService, idx) => (
+                          <li key={catalogService.id}>
+                            <button
+                              type="button"
+                              className={`flex w-full justify-between px-3 py-2 text-left text-sm hover:bg-black/5 dark:hover:bg-white/5 ${
+                                idx === serviceHighlight ? "bg-black/5 dark:bg-white/10" : ""
+                              }`}
+                              onMouseEnter={() => setServiceHighlight(idx)}
+                              onClick={() => selectCatalogService(catalogService)}
+                            >
+                              <span>{catalogService.name}</span>
+                              <span className="text-zinc-500">{currency(catalogService.unitPrice)}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min={0}
+                    placeholder="Horas"
+                    className={inputClass}
+                    value={service.hours}
+                    autoComplete="off"
+                    onChange={(e) => {
+                      const next = [...services];
+                      next[i] = { ...next[i], hours: Number(e.target.value) || 0 };
+                      setServices(next);
+                    }}
+                  />
+                  <input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    placeholder="Valor/hora"
+                    className={inputClass}
+                    value={service.unitPrice}
+                    autoComplete="off"
+                    onChange={(e) => {
+                      const next = [...services];
+                      next[i] = { ...next[i], unitPrice: Number(e.target.value) || 0 };
+                      setServices(next);
+                    }}
+                  />
+                  <div className="flex items-center text-sm text-zinc-600 dark:text-zinc-400">
+                    {currency(service.hours * service.unitPrice)}
+                  </div>
+                  <button
+                    type="button"
+                    className="text-red-600 hover:text-red-700 dark:text-red-400"
+                    onClick={() => setServices(services.filter((s) => s.key !== service.key))}
+                    aria-label="Remover serviço"
+                  >
+                    ×
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="text-red-600 hover:text-red-700 dark:text-red-400"
-                  onClick={() => setServices(services.filter((s) => s.key !== service.key))}
-                  aria-label="Remover serviço"
-                >
-                  ×
-                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <button
           type="button"
           className="self-start text-sm font-medium text-zinc-600 underline dark:text-zinc-400"
-          onClick={() =>
+          onClick={() => {
+            const newKey = crypto.randomUUID();
             setServices([
               ...services,
-              { key: crypto.randomUUID(), description: "", hours: 1, unitPrice: 0, startedAt: "", endedAt: "" },
-            ])
-          }
+              { key: newKey, description: "", hours: 1, unitPrice: 0, startedAt: "", endedAt: "" },
+            ]);
+            requestAnimationFrame(() => serviceDescriptionRefs.current.get(newKey)?.focus());
+          }}
         >
           + Adicionar serviço
         </button>

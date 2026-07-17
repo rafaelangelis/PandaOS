@@ -16,6 +16,7 @@ export type InstallmentRow = {
   customerName: string;
   number: number;
   dueDateStr: string;
+  paidAtStr: string | null;
   amount: number;
   status: string;
 };
@@ -66,19 +67,20 @@ export function ContasReceberTable({
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
       <div className="flex-1 overflow-x-auto rounded-lg border border-black/10 dark:border-white/10">
-        <table className="w-full text-left text-sm">
+        <table className="text-left text-sm">
           <thead className="bg-black/5 text-zinc-600 dark:bg-white/5 dark:text-zinc-400">
             <tr>
-              <th className="w-8 px-4 py-2">
+              <th className="whitespace-nowrap px-4 py-2">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Selecionar todas" />
               </th>
-              <th className="px-4 py-2">Venda</th>
-              <th className="px-4 py-2">Cliente</th>
-              <th className="px-4 py-2">Parcela</th>
-              <th className="px-4 py-2">Vencimento</th>
-              <th className="px-4 py-2">Valor</th>
-              <th className="px-4 py-2">Status</th>
-              {canEdit && <th className="px-4 py-2"></th>}
+              <th className="whitespace-nowrap px-4 py-2">Venda</th>
+              <th className="whitespace-nowrap px-4 py-2">Cliente</th>
+              <th className="whitespace-nowrap px-4 py-2">Parcela</th>
+              <th className="whitespace-nowrap px-4 py-2">Vencimento</th>
+              <th className="whitespace-nowrap px-4 py-2">Data da baixa</th>
+              <th className="whitespace-nowrap px-4 py-2">Valor</th>
+              <th className="whitespace-nowrap px-4 py-2">Status</th>
+              {canEdit && <th className="whitespace-nowrap px-4 py-2"></th>}
             </tr>
           </thead>
           <tbody>
@@ -89,7 +91,7 @@ export function ContasReceberTable({
                   selected.has(inst.id) ? "bg-black/5 dark:bg-white/10" : ""
                 }`}
               >
-                <td className="px-4 py-2">
+                <td className="whitespace-nowrap px-4 py-2">
                   <input
                     type="checkbox"
                     checked={selected.has(inst.id)}
@@ -97,18 +99,19 @@ export function ContasReceberTable({
                     aria-label={`Selecionar parcela ${inst.number} da venda #${inst.saleNumber}`}
                   />
                 </td>
-                <td className="px-4 py-2">
+                <td className="whitespace-nowrap px-4 py-2">
                   <Link href={`/os/${inst.serviceOrderId}`} className="hover:underline">
                     Venda #{inst.saleNumber}
                   </Link>
                 </td>
-                <td className="px-4 py-2">{inst.customerName}</td>
-                <td className="px-4 py-2">{inst.number}</td>
-                <td className="px-4 py-2">{inst.dueDateStr}</td>
-                <td className="px-4 py-2">{currency(inst.amount)}</td>
-                <td className="px-4 py-2 capitalize">{inst.status}</td>
+                <td className="whitespace-nowrap px-4 py-2">{inst.customerName}</td>
+                <td className="whitespace-nowrap px-4 py-2">{inst.number}</td>
+                <td className="whitespace-nowrap px-4 py-2">{inst.dueDateStr}</td>
+                <td className="whitespace-nowrap px-4 py-2">{inst.paidAtStr ?? "—"}</td>
+                <td className="whitespace-nowrap px-4 py-2">{currency(inst.amount)}</td>
+                <td className="whitespace-nowrap px-4 py-2 capitalize">{inst.status}</td>
                 {canEdit && (
-                  <td className="px-4 py-2 text-right">
+                  <td className="whitespace-nowrap px-4 py-2 text-right">
                     {inst.status !== "pago" && <MarkPaidButton installmentId={inst.id} />}
                   </td>
                 )}
@@ -116,7 +119,7 @@ export function ContasReceberTable({
             ))}
             {installments.length === 0 && (
               <tr>
-                <td colSpan={canEdit ? 8 : 7} className="px-4 py-4 text-center text-zinc-500">
+                <td colSpan={canEdit ? 9 : 8} className="whitespace-nowrap px-4 py-4 text-center text-zinc-500">
                   Nenhuma conta a receber para o filtro selecionado.
                 </td>
               </tr>

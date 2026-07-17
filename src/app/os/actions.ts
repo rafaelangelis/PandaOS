@@ -139,7 +139,7 @@ export async function createServiceOrder(
     return order;
   });
 
-  redirect(`/os/${serviceOrder.id}`);
+  redirect("/os");
 }
 
 export async function updateServiceOrder(
@@ -254,7 +254,7 @@ export async function updateServiceOrder(
     }
   });
 
-  redirect(`/os/${serviceOrderId}`);
+  redirect("/os");
 }
 
 export async function bulkUpdateServiceOrderStatus(
@@ -268,11 +268,65 @@ export async function bulkUpdateServiceOrderStatus(
 
   await requirePermission("os", "edit");
 
+  if (trimmed === "finalizado") {
+    // Finalizar uma OS launches it into Contas a Receber automatically (unless it
+    // already has a Sale, e.g. from "Converter em Venda") — 1 installment due in
+    // 30 days, payment method "A definir" (decided via AskUserQuestion, 2026-07-16).
+    await requirePermission("financeiro", "edit");
+
+    const orders = await prisma.serviceOrder.findMany({
+      where: { id: { in: ids }, sale: null },
+      include: { parts: true, services: true, technician: true },
+    });
+
+    for (const order of orders) {
+      const totalParts = order.parts.reduce((s, p) => s + p.quantity * p.unitPrice, 0);
+      const totalServices = order.services.reduce((s, sv) => s + sv.hours * sv.unitPrice, 0);
+      const totalAmount = Math.max(0, totalParts + totalServices - order.discount);
+
+      if (totalAmount <= 0) continue;
+
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 30);
+
+      await prisma.$transaction(async (tx) => {
+        const last = await tx.sale.findFirst({ orderBy: { number: "desc" }, select: { number: true } });
+        const number = (last?.number ?? 0) + 1;
+
+        const sale = await tx.sale.create({
+          data: {
+            number,
+            serviceOrderId: order.id,
+            customerId: order.customerId,
+            paymentMethod: "A definir",
+            totalAmount,
+            discount: order.discount,
+            installments: { create: [{ number: 1, amount: totalAmount, dueDate }] },
+          },
+        });
+
+        if (order.technicianId && order.technician && order.technician.commissionRate > 0) {
+          const rate = order.technician.commissionRate;
+          await tx.commission.create({
+            data: {
+              saleId: sale.id,
+              userId: order.technicianId,
+              baseAmount: totalServices,
+              rate,
+              amount: Math.round(totalServices * (rate / 100) * 100) / 100,
+            },
+          });
+        }
+      });
+    }
+  }
+
   await prisma.serviceOrder.updateMany({
     where: { id: { in: ids } },
     data: { status: trimmed },
   });
 
   revalidatePath("/os");
+  revalidatePath("/financeiro");
   return {};
 }

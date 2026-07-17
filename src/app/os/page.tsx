@@ -22,6 +22,10 @@ export default async function OSListPage({
   const canEdit = can(user, "os", "edit");
   const { status, from, to, all } = await searchParams;
 
+  // No `status` param at all defaults to "aberta" (open OS's only); an explicit
+  // `status=` (empty string) means the user picked "Todas" and clears the filter.
+  const effectiveStatus = status === undefined ? "aberta" : status;
+
   const todayStr = new Date().toISOString().slice(0, 10);
   const showingToday = !all && !from && !to;
   const effectiveFrom = showingToday ? todayStr : from;
@@ -38,7 +42,7 @@ export default async function OSListPage({
   const [orders, distinctStatuses] = await Promise.all([
     prisma.serviceOrder.findMany({
       where: {
-        ...(status && { status }),
+        ...(effectiveStatus && { status: effectiveStatus }),
         ...(entryDateFilter && { entryDate: entryDateFilter }),
       },
       orderBy: { number: "desc" },
@@ -65,19 +69,19 @@ export default async function OSListPage({
     ? distinctStatuses.map((s) => s.status)
     : ["aberta", "finalizado"];
 
-  const statusQS = status ? `status=${encodeURIComponent(status)}` : "";
+  const statusQS = `status=${encodeURIComponent(effectiveStatus)}`;
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10 font-sans">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">Ordens de Serviço</h1>
-          {status && (
+          {effectiveStatus && (
             <Link
-              href={`/os${all ? "?all=1" : ""}`}
+              href={`/os?status=${all ? "&all=1" : ""}`}
               className="flex items-center gap-1 rounded-full bg-black/5 px-3 py-1 text-xs capitalize text-zinc-600 hover:bg-black/10 dark:bg-white/10 dark:text-zinc-300 dark:hover:bg-white/20"
             >
-              {status} ×
+              {effectiveStatus} ×
             </Link>
           )}
           {showingToday && (
@@ -97,7 +101,18 @@ export default async function OSListPage({
       </div>
 
       <form className="mb-6 flex flex-wrap items-end gap-3" action="/os" method="get">
-        {status && <input type="hidden" name="status" value={status} />}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-zinc-500">Status</label>
+          <select
+            name="status"
+            defaultValue={effectiveStatus}
+            className="rounded-md border border-black/10 bg-transparent px-3 py-1.5 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-zinc-50 dark:focus:border-white/30"
+          >
+            <option value="aberta">Aberta</option>
+            <option value="finalizado">Finalizado</option>
+            <option value="">Todas</option>
+          </select>
+        </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-zinc-500">De</label>
           <input
@@ -132,7 +147,7 @@ export default async function OSListPage({
 
       {orders.length === 0 ? (
         <p className="text-sm text-zinc-500">
-          {status ? `Nenhuma ordem de serviço com status "${status}" no período selecionado.` : "Nenhuma ordem de serviço no período selecionado."}
+          {effectiveStatus ? `Nenhuma ordem de serviço com status "${effectiveStatus}" no período selecionado.` : "Nenhuma ordem de serviço no período selecionado."}
         </p>
       ) : (
         <OSListTable orders={ordersWithTotal} canEdit={canEdit} statusOptions={statusOptions} grandTotal={grandTotal} />

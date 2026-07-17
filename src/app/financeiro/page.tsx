@@ -64,7 +64,7 @@ export default async function FinanceiroPage({
     : installmentsRaw;
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10 font-sans">
+    <div className="mx-auto max-w-[96rem] px-6 py-10 font-sans">
       <Link href="/" className="mb-6 inline-block text-sm text-zinc-500 hover:underline">
         ← Voltar
       </Link>
@@ -145,6 +145,7 @@ export default async function FinanceiroPage({
               customerName: inst.sale.customer.name,
               number: inst.number,
               dueDateStr: inst.dueDate.toLocaleDateString("pt-BR", { timeZone: "UTC" }),
+              paidAtStr: inst.paidAt ? inst.paidAt.toLocaleDateString("pt-BR") : null,
               amount: inst.amount,
               status: inst.status,
             }))}

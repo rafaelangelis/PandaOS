@@ -5,10 +5,11 @@ import { ServiceOrderForm } from "./ServiceOrderForm";
 export default async function NovaOSPage() {
   await requirePermission("os", "edit");
 
-  const [customers, technicians, parts] = await Promise.all([
+  const [customers, technicians, parts, services] = await Promise.all([
     prisma.customer.findMany({ orderBy: { name: "asc" } }),
     prisma.user.findMany({ orderBy: { name: "asc" } }),
     prisma.part.findMany({ orderBy: { name: "asc" } }),
+    prisma.service.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   return (
@@ -23,6 +24,7 @@ export default async function NovaOSPage() {
           quantity: p.quantity,
           unitPrice: p.unitPrice,
         }))}
+        serviceCatalog={services.map((s) => ({ id: s.id, name: s.name, unitPrice: s.unitPrice }))}
       />
     </div>
   );
