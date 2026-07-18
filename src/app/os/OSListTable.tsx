@@ -57,6 +57,14 @@ export function OSListTable({
 
   function applyBulkStatus() {
     if (!bulkStatus.trim() || selected.size === 0) return;
+    if (
+      bulkStatus.trim() === "finalizado" &&
+      !window.confirm(
+        `Finalizar ${selected.size === 1 ? "esta OS" : `estas ${selected.size} OS`} vai lançá-la(s) em Contas a Receber. Deseja continuar?`
+      )
+    ) {
+      return;
+    }
     setError(null);
     startTransition(async () => {
       const result = await bulkUpdateServiceOrderStatus(Array.from(selected), bulkStatus);

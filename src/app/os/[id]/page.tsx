@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requirePermission, can } from "@/lib/permissions";
 import { SaleForm } from "./SaleForm";
-import { CancelButton } from "../CancelButton";
+import { CancelButton } from "@/components/CancelButton";
 
 function currency(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

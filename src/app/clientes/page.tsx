@@ -20,10 +20,6 @@ export default async function ClientesPage({
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10 font-sans">
-      <Link href="/" className="mb-6 inline-block text-sm text-zinc-500 hover:underline">
-        ← Voltar
-      </Link>
-
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">Clientes</h1>
         {canEdit && (
@@ -54,6 +50,7 @@ export default async function ClientesPage({
           email: c.email,
           osCount: c._count.serviceOrders,
         }))}
+        canEdit={canEdit}
         emptyMessage={q ? "Nenhum cliente encontrado." : "Nenhum cliente cadastrado ainda."}
       />
     </div>

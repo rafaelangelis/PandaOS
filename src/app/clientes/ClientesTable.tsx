@@ -13,9 +13,11 @@ export type CustomerRow = {
 
 export function ClientesTable({
   customers,
+  canEdit,
   emptyMessage,
 }: {
   customers: CustomerRow[];
+  canEdit: boolean;
   emptyMessage: string;
 }) {
   const router = useRouter();
@@ -33,7 +35,7 @@ export function ClientesTable({
         </thead>
         <tbody>
           {customers.map((c) => {
-            const href = `/clientes/${c.id}`;
+            const href = canEdit ? `/clientes/${c.id}/editar` : `/clientes/${c.id}`;
             return (
               <tr
                 key={c.id}
@@ -44,7 +46,7 @@ export function ClientesTable({
                   <Link
                     href={href}
                     onClick={(e) => e.stopPropagation()}
-                    className="font-medium text-black hover:underline dark:text-zinc-50"
+                    className="font-medium text-black dark:text-zinc-50"
                   >
                     {c.name}
                   </Link>

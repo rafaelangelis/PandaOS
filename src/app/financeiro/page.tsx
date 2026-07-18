@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requirePermission, can } from "@/lib/permissions";
 import { ContasReceberTable } from "./ContasReceberTable";
+import { ClienteFilterInput } from "./ClienteFilterInput";
 
 function currency(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -36,7 +37,7 @@ export default async function FinanceiroPage({
 
   const hasFilter = Boolean(q);
 
-  const [installmentsRaw, openTotal, accounts] = await Promise.all([
+  const [installmentsRaw, openTotal, accounts, customers] = await Promise.all([
     hasFilter
       ? prisma.saleInstallment.findMany({
           where: {
@@ -53,7 +54,10 @@ export default async function FinanceiroPage({
       _count: { _all: true },
     }),
     prisma.financialAccount.findMany({ orderBy: { name: "asc" } }),
+    prisma.customer.findMany({ select: { name: true }, orderBy: { name: "asc" } }),
   ]);
+
+  const customerNames = [...new Set(customers.map((c) => c.name))];
 
   const clienteQuery = cliente?.trim().toLowerCase();
   const installments = clienteQuery
@@ -62,10 +66,6 @@ export default async function FinanceiroPage({
 
   return (
     <div className="mx-auto max-w-[96rem] px-6 py-10 font-sans">
-      <Link href="/" className="mb-6 inline-block text-sm text-zinc-500 hover:underline">
-        ← Voltar
-      </Link>
-
       <h1 className="mb-6 text-2xl font-semibold text-black dark:text-zinc-50">Financeiro</h1>
 
       <h2 className="mb-1 text-lg font-semibold text-black dark:text-zinc-50">Contas a Receber</h2>
@@ -108,17 +108,7 @@ export default async function FinanceiroPage({
             className="rounded-md border border-black/10 bg-transparent px-3 py-1.5 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-zinc-50 dark:focus:border-white/30"
           />
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-zinc-500">Cliente</label>
-          <input
-            type="text"
-            name="cliente"
-            defaultValue={cliente}
-            autoComplete="off"
-            placeholder="Nome do cliente"
-            className="rounded-md border border-black/10 bg-transparent px-3 py-1.5 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-zinc-50 dark:focus:border-white/30"
-          />
-        </div>
+        <ClienteFilterInput customerNames={customerNames} defaultValue={cliente} />
         <button
           type="submit"
           className="rounded-md border border-black/10 px-4 py-1.5 text-sm font-medium text-black hover:bg-black/5 dark:border-white/10 dark:text-zinc-50 dark:hover:bg-white/5"

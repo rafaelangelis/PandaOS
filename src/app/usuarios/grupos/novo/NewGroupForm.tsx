@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { createGroup, type FormState } from "../../actions";
 import { GroupPermissionsGrid } from "../GroupPermissionsGrid";
+import { CancelButton } from "@/components/CancelButton";
 
 const initialState: FormState = {};
 const inputClass =
@@ -22,13 +23,16 @@ export function NewGroupForm() {
 
       {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="self-start rounded-md bg-black px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-      >
-        {pending ? "Salvando..." : "Criar grupo"}
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-md bg-black px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+        >
+          {pending ? "Salvando..." : "Criar grupo"}
+        </button>
+        <CancelButton />
+      </div>
     </form>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 function currency(value: number) {
@@ -37,7 +36,6 @@ export function ContasFinanceirasTable({
             <th className="px-4 py-2">Nome</th>
             <th className="px-4 py-2">Tipo</th>
             <th className="px-4 py-2">Saldo inicial</th>
-            {canEdit && <th className="px-4 py-2"></th>}
           </tr>
         </thead>
         <tbody>
@@ -54,23 +52,12 @@ export function ContasFinanceirasTable({
                 <td className="px-4 py-2">{account.name}</td>
                 <td className="px-4 py-2">{TYPE_LABELS[account.type] ?? account.type}</td>
                 <td className="px-4 py-2">{currency(account.initialBalance)}</td>
-                {canEdit && (
-                  <td className="px-4 py-2 text-right">
-                    <Link
-                      href={href}
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-sm text-zinc-600 hover:underline dark:text-zinc-400"
-                    >
-                      Editar
-                    </Link>
-                  </td>
-                )}
               </tr>
             );
           })}
           {accounts.length === 0 && (
             <tr>
-              <td colSpan={canEdit ? 4 : 3} className="px-4 py-4 text-center text-zinc-500">
+              <td colSpan={3} className="px-4 py-4 text-center text-zinc-500">
                 Nenhuma conta financeira cadastrada ainda.
               </td>
             </tr>

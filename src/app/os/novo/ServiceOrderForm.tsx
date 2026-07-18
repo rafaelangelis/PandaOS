@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo, useRef, useState } from "react";
 import { createServiceOrder, updateServiceOrder, type ServiceOrderState } from "../actions";
-import { CancelButton } from "../CancelButton";
+import { CancelButton } from "@/components/CancelButton";
 
 type Customer = { id: string; name: string; phone: string | null };
 type Technician = { id: string; name: string };
