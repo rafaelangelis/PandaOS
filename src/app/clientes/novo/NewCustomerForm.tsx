@@ -3,6 +3,9 @@
 import { useActionState } from "react";
 import { createCustomer, type CustomerFormState } from "../actions";
 import { CancelButton } from "@/components/CancelButton";
+import { CpfCnpjInput } from "../CpfCnpjInput";
+import { PhoneInput } from "../PhoneInput";
+import { CepInput } from "../CepInput";
 
 const initialState: CustomerFormState = {};
 const inputClass =
@@ -20,7 +23,7 @@ export function NewCustomerForm() {
       </div>
       <div className="flex flex-col gap-1">
         <label className={labelClass}>Telefone</label>
-        <input type="text" name="phone" className={inputClass} />
+        <PhoneInput className={inputClass} />
       </div>
       <div className="flex flex-col gap-1">
         <label className={labelClass}>E-mail</label>
@@ -28,7 +31,29 @@ export function NewCustomerForm() {
       </div>
       <div className="flex flex-col gap-1">
         <label className={labelClass}>CPF/CNPJ</label>
-        <input type="text" name="document" className={inputClass} />
+        <CpfCnpjInput className={inputClass} />
+      </div>
+      <div className="flex flex-col gap-1">
+        <label className={labelClass}>CEP</label>
+        <CepInput className={inputClass} />
+      </div>
+      <div className="flex flex-col gap-1">
+        <label className={labelClass}>Endereço</label>
+        <input type="text" name="address" className={inputClass} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-1">
+          <label className={labelClass}>Número</label>
+          <input type="text" name="addressNumber" className={inputClass} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className={labelClass}>Bairro</label>
+          <input type="text" name="neighborhood" className={inputClass} />
+        </div>
+      </div>
+      <div className="flex flex-col gap-1">
+        <label className={labelClass}>Cidade</label>
+        <input type="text" name="city" className={inputClass} />
       </div>
 
       {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}

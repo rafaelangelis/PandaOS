@@ -59,7 +59,13 @@ export function SaleForm({ serviceOrderId }: { serviceOrderId: string }) {
         </div>
         <div className="flex flex-col gap-1">
           <label className={labelClass}>Nº de parcelas</label>
-          <input type="number" name="installmentsCount" min={1} defaultValue={1} className={inputClass} />
+          <input
+            type="text"
+            inputMode="numeric"
+            data-numeric="integer"
+            name="installmentsCount"
+            className={inputClass}
+          />
         </div>
         <div className="flex flex-col gap-1">
           <label className={labelClass}>1º vencimento</label>

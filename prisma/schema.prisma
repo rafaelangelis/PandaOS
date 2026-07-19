@@ -58,6 +58,11 @@ model Customer {
   phone         String?
   email         String?
   document      String?
+  address       String?
+  addressNumber String?
+  neighborhood  String?
+  city          String?
+  zipCode       String?
   createdAt     DateTime       @default(now())
   serviceOrders ServiceOrder[]
   sales         Sale[]

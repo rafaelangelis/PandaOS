@@ -3,6 +3,9 @@
 import { useActionState } from "react";
 import { updateCustomer, type CustomerFormState } from "../../actions";
 import { CancelButton } from "@/components/CancelButton";
+import { CpfCnpjInput } from "../../CpfCnpjInput";
+import { PhoneInput } from "../../PhoneInput";
+import { CepInput } from "../../CepInput";
 
 const initialState: CustomerFormState = {};
 const inputClass =
@@ -15,12 +18,22 @@ export function EditCustomerForm({
   phone,
   email,
   document,
+  address,
+  addressNumber,
+  neighborhood,
+  city,
+  zipCode,
 }: {
   customerId: string;
   name: string;
   phone: string | null;
   email: string | null;
   document: string | null;
+  address: string | null;
+  addressNumber: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  zipCode: string | null;
 }) {
   const updateCustomerWithId = updateCustomer.bind(null, customerId);
   const [state, formAction, pending] = useActionState(updateCustomerWithId, initialState);
@@ -33,7 +46,7 @@ export function EditCustomerForm({
       </div>
       <div className="flex flex-col gap-1">
         <label className={labelClass}>Telefone</label>
-        <input type="text" name="phone" defaultValue={phone ?? ""} className={inputClass} />
+        <PhoneInput defaultValue={phone} className={inputClass} />
       </div>
       <div className="flex flex-col gap-1">
         <label className={labelClass}>E-mail</label>
@@ -41,7 +54,29 @@ export function EditCustomerForm({
       </div>
       <div className="flex flex-col gap-1">
         <label className={labelClass}>CPF/CNPJ</label>
-        <input type="text" name="document" defaultValue={document ?? ""} className={inputClass} />
+        <CpfCnpjInput defaultValue={document} className={inputClass} />
+      </div>
+      <div className="flex flex-col gap-1">
+        <label className={labelClass}>CEP</label>
+        <CepInput defaultValue={zipCode} className={inputClass} />
+      </div>
+      <div className="flex flex-col gap-1">
+        <label className={labelClass}>Endereço</label>
+        <input type="text" name="address" defaultValue={address ?? ""} className={inputClass} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-1">
+          <label className={labelClass}>Número</label>
+          <input type="text" name="addressNumber" defaultValue={addressNumber ?? ""} className={inputClass} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className={labelClass}>Bairro</label>
+          <input type="text" name="neighborhood" defaultValue={neighborhood ?? ""} className={inputClass} />
+        </div>
+      </div>
+      <div className="flex flex-col gap-1">
+        <label className={labelClass}>Cidade</label>
+        <input type="text" name="city" defaultValue={city ?? ""} className={inputClass} />
       </div>
 
       {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}

@@ -15,7 +15,6 @@ export default async function ClientesPage({
   const customers = await prisma.customer.findMany({
     where: q ? { name: { contains: q } } : undefined,
     orderBy: { name: "asc" },
-    include: { _count: { select: { serviceOrders: true } } },
   });
 
   return (
@@ -48,7 +47,6 @@ export default async function ClientesPage({
           name: c.name,
           phone: c.phone,
           email: c.email,
-          osCount: c._count.serviceOrders,
         }))}
         canEdit={canEdit}
         emptyMessage={q ? "Nenhum cliente encontrado." : "Nenhum cliente cadastrado ainda."}

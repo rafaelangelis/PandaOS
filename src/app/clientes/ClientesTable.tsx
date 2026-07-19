@@ -8,7 +8,6 @@ export type CustomerRow = {
   name: string;
   phone: string | null;
   email: string | null;
-  osCount: number;
 };
 
 export function ClientesTable({
@@ -30,7 +29,6 @@ export function ClientesTable({
             <th className="px-4 py-2">Nome</th>
             <th className="px-4 py-2">Telefone</th>
             <th className="px-4 py-2">E-mail</th>
-            <th className="px-4 py-2">OS</th>
           </tr>
         </thead>
         <tbody>
@@ -53,13 +51,12 @@ export function ClientesTable({
                 </td>
                 <td className="px-4 py-2">{c.phone ?? "—"}</td>
                 <td className="px-4 py-2">{c.email ?? "—"}</td>
-                <td className="px-4 py-2">{c.osCount}</td>
               </tr>
             );
           })}
           {customers.length === 0 && (
             <tr>
-              <td colSpan={4} className="px-4 py-4 text-center text-zinc-500">
+              <td colSpan={3} className="px-4 py-4 text-center text-zinc-500">
                 {emptyMessage}
               </td>
             </tr>

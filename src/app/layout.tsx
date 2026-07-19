@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { getCurrentUser, can } from "@/lib/permissions";
 import { TopNav, type NavLink } from "@/components/TopNav";
+import { UppercaseInputs } from "@/components/UppercaseInputs";
+import { NumericInputs } from "@/components/NumericInputs";
 import type { ModuleKey } from "@/lib/modules";
 
 const geistSans = Geist({
@@ -27,6 +29,7 @@ const MODULE_LINKS: Record<ModuleKey, NavLink> = {
   servicos: { href: "/servicos", label: "Serviços" },
   contasFinanceiras: { href: "/contas-financeiras", label: "Contas Financeiras" },
   financeiro: { href: "/financeiro", label: "Financeiro" },
+  relatorios: { href: "/relatorios", label: "Relatórios" },
   usuarios: { href: "/usuarios", label: "Usuários" },
 };
 
@@ -59,6 +62,8 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <UppercaseInputs />
+        <NumericInputs />
         {user && <TopNav links={links} groupedLinks={cadastroLinks} userName={user.name} />}
         {children}
       </body>

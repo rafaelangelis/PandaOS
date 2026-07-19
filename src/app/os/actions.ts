@@ -254,7 +254,8 @@ export async function updateServiceOrder(
     }
   });
 
-  redirect("/os");
+  const returnTo = String(formData.get("returnTo") ?? "");
+  redirect(returnTo === "financeiro" ? "/financeiro?status=pendente&q=1" : "/os");
 }
 
 export async function bulkUpdateServiceOrderStatus(

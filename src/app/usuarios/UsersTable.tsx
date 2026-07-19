@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export type UserRow = {
@@ -22,7 +21,6 @@ export function UsersTable({ users }: { users: UserRow[] }) {
             <th className="px-4 py-2">Nome</th>
             <th className="px-4 py-2">Usuário</th>
             <th className="px-4 py-2">Grupo</th>
-            <th className="px-4 py-2"></th>
           </tr>
         </thead>
         <tbody>
@@ -39,15 +37,6 @@ export function UsersTable({ users }: { users: UserRow[] }) {
                 </td>
                 <td className="px-4 py-2">{u.username}</td>
                 <td className="px-4 py-2">{u.groupName ?? "—"}</td>
-                <td className="px-4 py-2 text-right">
-                  <Link
-                    href={href}
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-sm text-zinc-600 hover:underline dark:text-zinc-400"
-                  >
-                    Editar
-                  </Link>
-                </td>
               </tr>
             );
           })}

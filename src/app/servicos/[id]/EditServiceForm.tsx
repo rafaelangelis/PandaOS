@@ -29,7 +29,14 @@ export function EditServiceForm({
       </div>
       <div className="flex flex-col gap-1 sm:w-48">
         <label className={labelClass}>Valor (R$)</label>
-        <input type="number" name="unitPrice" step="0.01" min={0} defaultValue={unitPrice} className={inputClass} />
+        <input
+          type="text"
+          inputMode="decimal"
+          data-numeric="decimal"
+          name="unitPrice"
+          defaultValue={unitPrice}
+          className={inputClass}
+        />
       </div>
 
       {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}

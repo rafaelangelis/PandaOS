@@ -11,10 +11,17 @@ function toInputDateTime(date: Date | null) {
   return date ? date.toISOString().slice(0, 16) : "";
 }
 
-export default async function EditarOSPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditarOSPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
+}) {
   await requirePermission("os", "edit");
 
   const { id } = await params;
+  const { from } = await searchParams;
 
   const [order, customers, technicians, inventoryParts, services] = await Promise.all([
     prisma.serviceOrder.findUnique({
@@ -64,6 +71,7 @@ export default async function EditarOSPage({ params }: { params: Promise<{ id: s
         mode="edit"
         title={`Editar OS #${order.number}`}
         serviceOrderId={order.id}
+        returnTo={from}
         initialData={initialData}
         customers={customers.map((c) => ({ id: c.id, name: c.name, phone: c.phone }))}
         technicians={technicians.map((t) => ({ id: t.id, name: t.name }))}

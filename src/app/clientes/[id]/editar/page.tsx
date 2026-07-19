@@ -21,6 +21,11 @@ export default async function EditarClientePage({ params }: { params: Promise<{ 
         phone={customer.phone}
         email={customer.email}
         document={customer.document}
+        address={customer.address}
+        addressNumber={customer.addressNumber}
+        neighborhood={customer.neighborhood}
+        city={customer.city}
+        zipCode={customer.zipCode}
       />
     </div>
   );

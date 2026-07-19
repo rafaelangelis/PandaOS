@@ -25,15 +25,15 @@ export function NewPartForm() {
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="flex flex-col gap-1">
           <label className={labelClass}>Quantidade em estoque</label>
-          <input type="number" name="quantity" min={0} defaultValue={0} className={inputClass} />
+          <input type="text" inputMode="numeric" data-numeric="integer" name="quantity" className={inputClass} />
         </div>
         <div className="flex flex-col gap-1">
           <label className={labelClass}>Estoque mínimo</label>
-          <input type="number" name="minStock" min={0} defaultValue={0} className={inputClass} />
+          <input type="text" inputMode="numeric" data-numeric="integer" name="minStock" className={inputClass} />
         </div>
         <div className="flex flex-col gap-1">
           <label className={labelClass}>Preço (R$)</label>
-          <input type="number" name="unitPrice" step="0.01" min={0} defaultValue={0} className={inputClass} />
+          <input type="text" inputMode="decimal" data-numeric="decimal" name="unitPrice" className={inputClass} />
         </div>
       </div>
 

@@ -13,14 +13,14 @@ type PartRow = {
   key: string;
   partId: string;
   description: string;
-  quantity: number;
-  unitPrice: number;
+  quantity: string;
+  unitPrice: string;
 };
 type ServiceRow = {
   key: string;
   description: string;
-  hours: number;
-  unitPrice: number;
+  hours: string;
+  unitPrice: string;
   startedAt: string;
   endedAt: string;
 };
@@ -39,8 +39,8 @@ export type ServiceOrderInitialData = {
   completionDate: string;
   exitDate: string;
   discount: number;
-  parts: Omit<PartRow, "key">[];
-  services: Omit<ServiceRow, "key">[];
+  parts: { partId: string; description: string; quantity: number; unitPrice: number }[];
+  services: { description: string; hours: number; unitPrice: number; startedAt: string; endedAt: string }[];
 };
 
 const initialState: ServiceOrderState = {};
@@ -67,6 +67,7 @@ export function ServiceOrderForm({
   mode = "create",
   title,
   serviceOrderId,
+  returnTo,
   initialData,
 }: {
   customers: Customer[];
@@ -76,6 +77,7 @@ export function ServiceOrderForm({
   mode?: "create" | "edit";
   title?: string;
   serviceOrderId?: string;
+  returnTo?: string;
   initialData?: ServiceOrderInitialData;
 }) {
   const [state, formAction, pending] = useActionState(
@@ -122,15 +124,25 @@ export function ServiceOrderForm({
 
   const [parts, setParts] = useState<PartRow[]>(
     initialData?.parts.length
-      ? initialData.parts.map((p) => ({ ...p, key: crypto.randomUUID() }))
-      : [{ key: crypto.randomUUID(), partId: "", description: "", quantity: 1, unitPrice: 0 }]
+      ? initialData.parts.map((p) => ({
+          ...p,
+          key: crypto.randomUUID(),
+          quantity: String(p.quantity),
+          unitPrice: String(p.unitPrice),
+        }))
+      : [{ key: crypto.randomUUID(), partId: "", description: "", quantity: "", unitPrice: "" }]
   );
   const [openPartDropdown, setOpenPartDropdown] = useState<string | null>(null);
   const [partHighlight, setPartHighlight] = useState(-1);
   const [services, setServices] = useState<ServiceRow[]>(
     initialData?.services.length
-      ? initialData.services.map((s) => ({ ...s, key: crypto.randomUUID() }))
-      : [{ key: crypto.randomUUID(), description: "", hours: 1, unitPrice: 0, startedAt: "", endedAt: "" }]
+      ? initialData.services.map((s) => ({
+          ...s,
+          key: crypto.randomUUID(),
+          hours: String(s.hours),
+          unitPrice: String(s.unitPrice),
+        }))
+      : [{ key: crypto.randomUUID(), description: "", hours: "", unitPrice: "", startedAt: "", endedAt: "" }]
   );
   const [openServiceDropdown, setOpenServiceDropdown] = useState<string | null>(null);
   const [serviceHighlight, setServiceHighlight] = useState(-1);
@@ -138,10 +150,10 @@ export function ServiceOrderForm({
   const partDescriptionRefs = useRef<Map<string, HTMLInputElement>>(new Map());
   const serviceDescriptionRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
-  const totalParts = parts.reduce((sum, p) => sum + p.quantity * p.unitPrice, 0);
-  const totalServices = services.reduce((sum, s) => sum + s.hours * s.unitPrice, 0);
-  const [discount, setDiscount] = useState(initialData?.discount ?? 0);
-  const total = Math.max(0, totalParts + totalServices - discount);
+  const totalParts = parts.reduce((sum, p) => sum + (Number(p.quantity) || 0) * (Number(p.unitPrice) || 0), 0);
+  const totalServices = services.reduce((sum, s) => sum + (Number(s.hours) || 0) * (Number(s.unitPrice) || 0), 0);
+  const [discount, setDiscount] = useState(initialData?.discount ? String(initialData.discount) : "");
+  const total = Math.max(0, totalParts + totalServices - (Number(discount) || 0));
 
   return (
     <form action={formAction} className="flex flex-col gap-8" autoComplete="off">
@@ -217,6 +229,7 @@ export function ServiceOrderForm({
                 <input type="hidden" name="customerId" value={customerId} />
                 <button
                   type="button"
+                  tabIndex={-1}
                   className="mt-1 self-start text-xs font-medium text-zinc-600 underline dark:text-zinc-400"
                   onClick={() => {
                     setCreatingCustomer(true);
@@ -367,7 +380,7 @@ export function ServiceOrderForm({
                   .slice(0, 8)
               : [];
             const linkedPart = part.partId ? inventoryParts.find((p) => p.id === part.partId) : null;
-            const overStock = linkedPart ? part.quantity > linkedPart.quantity : false;
+            const overStock = linkedPart ? (Number(part.quantity) || 0) > linkedPart.quantity : false;
 
             const selectPart = (invPart: InventoryPart) => {
               const next = [...parts];
@@ -375,7 +388,7 @@ export function ServiceOrderForm({
                 ...next[i],
                 partId: invPart.id,
                 description: invPart.name,
-                unitPrice: invPart.unitPrice,
+                unitPrice: String(invPart.unitPrice),
               };
               setParts(next);
               setOpenPartDropdown(null);
@@ -446,33 +459,34 @@ export function ServiceOrderForm({
                     )}
                   </div>
                   <input
-                    type="number"
-                    min={1}
+                    type="text"
+                    inputMode="numeric"
+                    data-numeric="integer"
                     className={inputClass}
                     value={part.quantity}
                     autoComplete="off"
                     onChange={(e) => {
                       const next = [...parts];
-                      next[i] = { ...next[i], quantity: Number(e.target.value) || 1 };
+                      next[i] = { ...next[i], quantity: e.target.value };
                       setParts(next);
                     }}
                   />
                   <input
-                    type="number"
-                    step="0.01"
-                    min={0}
+                    type="text"
+                    inputMode="decimal"
+                    data-numeric="decimal"
                     placeholder="Preço unit."
                     className={inputClass}
                     value={part.unitPrice}
                     autoComplete="off"
                     onChange={(e) => {
                       const next = [...parts];
-                      next[i] = { ...next[i], unitPrice: Number(e.target.value) || 0 };
+                      next[i] = { ...next[i], unitPrice: e.target.value };
                       setParts(next);
                     }}
                   />
                   <div className="flex items-center text-sm text-zinc-600 dark:text-zinc-400">
-                    {currency(part.quantity * part.unitPrice)}
+                    {currency((Number(part.quantity) || 0) * (Number(part.unitPrice) || 0))}
                   </div>
                   <button
                     type="button"
@@ -499,7 +513,7 @@ export function ServiceOrderForm({
           className="self-start text-sm font-medium text-zinc-600 underline dark:text-zinc-400"
           onClick={() => {
             const newKey = crypto.randomUUID();
-            setParts([...parts, { key: newKey, partId: "", description: "", quantity: 1, unitPrice: 0 }]);
+            setParts([...parts, { key: newKey, partId: "", description: "", quantity: "", unitPrice: "" }]);
             requestAnimationFrame(() => partDescriptionRefs.current.get(newKey)?.focus());
           }}
         >
@@ -523,7 +537,7 @@ export function ServiceOrderForm({
               next[i] = {
                 ...next[i],
                 description: catalogService.name,
-                unitPrice: catalogService.unitPrice,
+                unitPrice: String(catalogService.unitPrice),
               };
               setServices(next);
               setOpenServiceDropdown(null);
@@ -594,35 +608,35 @@ export function ServiceOrderForm({
                     )}
                   </div>
                   <input
-                    type="number"
-                    step="0.5"
-                    min={0}
+                    type="text"
+                    inputMode="decimal"
+                    data-numeric="decimal"
                     placeholder="Horas"
                     className={inputClass}
                     value={service.hours}
                     autoComplete="off"
                     onChange={(e) => {
                       const next = [...services];
-                      next[i] = { ...next[i], hours: Number(e.target.value) || 0 };
+                      next[i] = { ...next[i], hours: e.target.value };
                       setServices(next);
                     }}
                   />
                   <input
-                    type="number"
-                    step="0.01"
-                    min={0}
+                    type="text"
+                    inputMode="decimal"
+                    data-numeric="decimal"
                     placeholder="Valor/hora"
                     className={inputClass}
                     value={service.unitPrice}
                     autoComplete="off"
                     onChange={(e) => {
                       const next = [...services];
-                      next[i] = { ...next[i], unitPrice: Number(e.target.value) || 0 };
+                      next[i] = { ...next[i], unitPrice: e.target.value };
                       setServices(next);
                     }}
                   />
                   <div className="flex items-center text-sm text-zinc-600 dark:text-zinc-400">
-                    {currency(service.hours * service.unitPrice)}
+                    {currency((Number(service.hours) || 0) * (Number(service.unitPrice) || 0))}
                   </div>
                   <button
                     type="button"
@@ -644,7 +658,7 @@ export function ServiceOrderForm({
             const newKey = crypto.randomUUID();
             setServices([
               ...services,
-              { key: newKey, description: "", hours: 1, unitPrice: 0, startedAt: "", endedAt: "" },
+              { key: newKey, description: "", hours: "", unitPrice: "", startedAt: "", endedAt: "" },
             ]);
             requestAnimationFrame(() => serviceDescriptionRefs.current.get(newKey)?.focus());
           }}
@@ -701,30 +715,47 @@ export function ServiceOrderForm({
         <div className="flex flex-col gap-1 sm:w-48">
           <label className={labelClass}>Desconto (R$)</label>
           <input
-            type="number"
-            step="0.01"
-            min={0}
+            type="text"
+            inputMode="decimal"
+            data-numeric="decimal"
             name="discount"
             className={inputClass}
             value={discount}
             autoComplete="off"
-            onChange={(e) => setDiscount(Number(e.target.value) || 0)}
+            onChange={(e) => setDiscount(e.target.value)}
           />
         </div>
 
         <div className="flex flex-col items-end gap-1 border-t border-black/10 pt-4 dark:border-white/10">
           <p className="text-sm text-zinc-500">Peças: {currency(totalParts)}</p>
           <p className="text-sm text-zinc-500">Serviços: {currency(totalServices)}</p>
-          {discount > 0 && <p className="text-sm text-zinc-500">Desconto: -{currency(discount)}</p>}
+          {(Number(discount) || 0) > 0 && (
+            <p className="text-sm text-zinc-500">Desconto: -{currency(Number(discount) || 0)}</p>
+          )}
           <p className="text-lg font-semibold text-black dark:text-zinc-50">Total: {currency(total)}</p>
         </div>
       </section>
 
-      <input type="hidden" name="partsJson" value={JSON.stringify(parts)} readOnly />
-      <input type="hidden" name="servicesJson" value={JSON.stringify(services)} readOnly />
+      <input
+        type="hidden"
+        name="partsJson"
+        value={JSON.stringify(
+          parts.map((p) => ({ ...p, quantity: Number(p.quantity) || 0, unitPrice: Number(p.unitPrice) || 0 }))
+        )}
+        readOnly
+      />
+      <input
+        type="hidden"
+        name="servicesJson"
+        value={JSON.stringify(
+          services.map((s) => ({ ...s, hours: Number(s.hours) || 0, unitPrice: Number(s.unitPrice) || 0 }))
+        )}
+        readOnly
+      />
       {mode === "edit" && serviceOrderId && (
         <input type="hidden" name="serviceOrderId" value={serviceOrderId} readOnly />
       )}
+      {returnTo && <input type="hidden" name="returnTo" value={returnTo} readOnly />}
 
       {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
     </form>

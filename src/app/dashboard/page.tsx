@@ -2,24 +2,35 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, can } from "@/lib/permissions";
+import { MesFilterInput } from "./MesFilterInput";
 
 function currency(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mes?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   const showOS = can(user, "os", "view");
   const showFinanceiro = can(user, "financeiro", "view");
 
+  const { mes } = await searchParams;
   const now = new Date();
-  const startOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
-  const startOfNextMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 1));
+  const mesMatch = mes?.match(/^(\d{4})-(\d{2})$/);
+  const selectedYear = mesMatch ? Number(mesMatch[1]) : now.getFullYear();
+  const selectedMonth = mesMatch ? Number(mesMatch[2]) - 1 : now.getMonth();
+  const selectedMesValue = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}`;
+
+  const startOfMonth = new Date(Date.UTC(selectedYear, selectedMonth, 1));
+  const startOfNextMonth = new Date(Date.UTC(selectedYear, selectedMonth + 1, 1));
   const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 
-  const [statusCounts, salesThisMonth, pendingInstallments] = await Promise.all([
+  const [statusCountsRaw, salesOfMonth, pendingInstallments] = await Promise.all([
     showOS
       ? prisma.serviceOrder.groupBy({ by: ["status"], _count: { _all: true } })
       : Promise.resolve([]),
@@ -37,7 +48,9 @@ export default async function DashboardPage() {
       : Promise.resolve([]),
   ]);
 
-  const faturamentoMes = salesThisMonth.reduce((s, sale) => s + sale.totalAmount, 0);
+  const statusCounts = statusCountsRaw.filter((s) => s.status !== "finalizado");
+
+  const faturamentoMes = salesOfMonth.reduce((s, sale) => s + sale.totalAmount, 0);
   const totalReceber = pendingInstallments.reduce((s, inst) => s + inst.amount, 0);
   const atrasadas = pendingInstallments.filter((inst) => inst.dueDate < todayUTC);
   const totalAtrasado = atrasadas.reduce((s, inst) => s + inst.amount, 0);
@@ -61,7 +74,7 @@ export default async function DashboardPage() {
                 {statusCounts.map((s) => (
                   <Link
                     key={s.status}
-                    href={`/os?status=${encodeURIComponent(s.status)}`}
+                    href={`/os?all=1&status=${encodeURIComponent(s.status)}`}
                     className="flex items-center justify-between rounded-md px-2 py-1.5 capitalize hover:bg-black/5 dark:hover:bg-white/5"
                   >
                     <span className="text-black dark:text-zinc-50">{s.status}</span>
@@ -75,10 +88,13 @@ export default async function DashboardPage() {
 
         {showFinanceiro && (
           <div className="rounded-lg border border-black/10 p-6 dark:border-white/10">
-            <h2 className="mb-1 text-sm font-medium text-zinc-500">Faturamento do mês</h2>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <h2 className="text-sm font-medium text-zinc-500">Faturamento do mês</h2>
+              <MesFilterInput defaultValue={selectedMesValue} />
+            </div>
             <p className="text-2xl font-semibold text-black dark:text-zinc-50">{currency(faturamentoMes)}</p>
             <p className="mt-1 text-sm text-zinc-500">
-              {salesThisMonth.length} {salesThisMonth.length === 1 ? "venda" : "vendas"}
+              {salesOfMonth.length} {salesOfMonth.length === 1 ? "venda" : "vendas"}
             </p>
           </div>
         )}
@@ -98,7 +114,10 @@ export default async function DashboardPage() {
                 </>
               )}
             </p>
-            <Link href="/financeiro" className="mt-3 inline-block text-sm text-black hover:underline dark:text-zinc-50">
+            <Link
+              href="/financeiro?status=pendente&q=1"
+              className="mt-3 inline-block text-sm text-black hover:underline dark:text-zinc-50"
+            >
               Ver contas a receber →
             </Link>
           </div>

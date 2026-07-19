@@ -109,3 +109,28 @@ export async function bulkMarkInstallmentsPaid(ids: string[], accountId: string)
   revalidatePath("/financeiro");
   return {};
 }
+
+export async function reverseSale(serviceOrderId: string): Promise<{ error?: string }> {
+  await requirePermission("financeiro", "edit");
+
+  const order = await prisma.serviceOrder.findUnique({
+    where: { id: serviceOrderId },
+    include: { sale: { include: { commission: true } } },
+  });
+
+  if (!order?.sale) return { error: "Esta OS não possui venda para estornar." };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.saleInstallment.deleteMany({ where: { saleId: order.sale!.id } });
+    if (order.sale!.commission) {
+      await tx.commission.delete({ where: { id: order.sale!.commission.id } });
+    }
+    await tx.sale.delete({ where: { id: order.sale!.id } });
+    await tx.serviceOrder.update({ where: { id: order.id }, data: { status: "aberta" } });
+  });
+
+  revalidatePath(`/os/${serviceOrderId}`);
+  revalidatePath("/os");
+  revalidatePath("/financeiro");
+  return {};
+}

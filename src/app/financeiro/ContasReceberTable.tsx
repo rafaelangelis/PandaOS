@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { bulkMarkInstallmentsPaid } from "@/app/vendas/actions";
 import { MarkPaidButton } from "./MarkPaidButton";
+import { EstornarButton } from "./EstornarButton";
 
 function currency(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -33,6 +35,7 @@ export function ContasReceberTable({
   accounts: FinancialAccountOption[];
   canEdit: boolean;
 }) {
+  const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [accountId, setAccountId] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -94,11 +97,12 @@ export function ContasReceberTable({
             {installments.map((inst) => (
               <tr
                 key={inst.id}
-                className={`border-t border-black/10 dark:border-white/10 ${
+                onClick={() => router.push(`/os/${inst.serviceOrderId}?from=financeiro`)}
+                className={`cursor-pointer border-t border-black/10 hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5 ${
                   selected.has(inst.id) ? "bg-black/5 dark:bg-white/10" : ""
                 }`}
               >
-                <td className="whitespace-nowrap px-4 py-2">
+                <td className="whitespace-nowrap px-4 py-2" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="checkbox"
                     checked={selected.has(inst.id)}
@@ -107,7 +111,10 @@ export function ContasReceberTable({
                   />
                 </td>
                 <td className="whitespace-nowrap px-4 py-2">
-                  <Link href={`/os/${inst.serviceOrderId}`} className="hover:underline">
+                  <Link
+                    href={`/os/${inst.serviceOrderId}?from=financeiro`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     Venda #{inst.saleNumber}
                   </Link>
                 </td>
@@ -119,8 +126,11 @@ export function ContasReceberTable({
                 <td className="whitespace-nowrap px-4 py-2">{currency(inst.amount)}</td>
                 <td className="whitespace-nowrap px-4 py-2 capitalize">{inst.status}</td>
                 {canEdit && (
-                  <td className="whitespace-nowrap px-4 py-2 text-right">
-                    {inst.status !== "pago" && <MarkPaidButton installmentId={inst.id} accounts={accounts} />}
+                  <td className="whitespace-nowrap px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-3">
+                      {inst.status !== "pago" && <MarkPaidButton installmentId={inst.id} accounts={accounts} />}
+                      <EstornarButton serviceOrderId={inst.serviceOrderId} />
+                    </div>
                   </td>
                 )}
               </tr>

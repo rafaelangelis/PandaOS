@@ -17,12 +17,20 @@ function formatDateTime(date: Date | null) {
   return date ? date.toLocaleString("pt-BR") : "—";
 }
 
-export default async function OSDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OSDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
+}) {
   const user = await requirePermission("os", "view");
   const canManageSale = can(user, "financeiro", "edit");
   const canEditOS = can(user, "os", "edit");
 
   const { id } = await params;
+  const { from } = await searchParams;
+  const editHref = `/os/${id}/editar${from ? `?from=${encodeURIComponent(from)}` : ""}`;
   const order = await prisma.serviceOrder.findUnique({
     where: { id },
     include: {
@@ -56,7 +64,7 @@ export default async function OSDetailPage({ params }: { params: Promise<{ id: s
           </span>
           {canEditOS && (
             <Link
-              href={`/os/${order.id}/editar`}
+              href={editHref}
               className="rounded-md border border-black/10 px-3 py-1.5 text-sm font-medium text-black hover:bg-black/5 dark:border-white/10 dark:text-zinc-50 dark:hover:bg-white/5"
             >
               Editar OS
