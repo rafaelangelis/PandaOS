@@ -5,6 +5,7 @@ export const MODULES = [
   { key: "estoque", label: "Estoque" },
   { key: "servicos", label: "Serviços" },
   { key: "contasFinanceiras", label: "Contas Financeiras" },
+  { key: "empresa", label: "Dados da Empresa" },
   { key: "relatorios", label: "Relatórios" },
   { key: "usuarios", label: "Usuários e Permissões" },
 ] as const;

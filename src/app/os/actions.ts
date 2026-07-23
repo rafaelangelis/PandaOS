@@ -316,3 +316,37 @@ export async function bulkUpdateServiceOrderStatus(
   revalidatePath("/financeiro");
   return {};
 }
+
+export async function bulkDeleteServiceOrders(
+  ids: string[]
+): Promise<{ error?: string; deletedCount?: number; skippedCount?: number }> {
+  if (!ids.length) {
+    return { error: "Selecione ao menos uma OS." };
+  }
+
+  await requirePermission("os", "edit");
+
+  const orders = await prisma.serviceOrder.findMany({
+    where: { id: { in: ids } },
+    include: { parts: true, sale: true },
+  });
+
+  const deletable = orders.filter((o) => !o.sale);
+  const skippedCount = orders.length - deletable.length;
+
+  await prisma.$transaction(async (tx) => {
+    for (const order of deletable) {
+      for (const p of order.parts) {
+        if (!p.partId) continue;
+        await tx.part.update({
+          where: { id: p.partId },
+          data: { quantity: { increment: p.quantity } },
+        });
+      }
+      await tx.serviceOrder.delete({ where: { id: order.id } });
+    }
+  });
+
+  revalidatePath("/os");
+  return { deletedCount: deletable.length, skippedCount };
+}

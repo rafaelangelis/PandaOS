@@ -34,7 +34,7 @@ export function ServicosTable({ services, canEdit }: { services: ServiceRow[]; c
                 key={service.id}
                 onClick={canEdit ? () => router.push(href) : undefined}
                 className={`border-t border-black/10 dark:border-white/10 ${
-                  canEdit ? "cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" : ""
+                  canEdit ? "cursor-pointer hover:bg-orange-100 dark:hover:bg-[rgba(255,165,0,0.18)]" : ""
                 }`}
               >
                 <td className="px-4 py-2">{service.name}</td>

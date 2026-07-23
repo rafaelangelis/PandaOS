@@ -62,6 +62,7 @@ export default async function OSListPage({
       status: order.status,
       entryDateStr: order.entryDate.toLocaleDateString("pt-BR", { timeZone: "UTC" }),
       total: Math.max(0, totalParts + totalServices - order.discount),
+      internalNotes: order.internalNotes,
     };
   });
   const grandTotal = ordersWithTotal.reduce((s, o) => s + o.total, 0);
@@ -93,7 +94,7 @@ export default async function OSListPage({
         {canEdit && (
           <Link
             href="/os/novo"
-            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
           >
             + Nova OS
           </Link>

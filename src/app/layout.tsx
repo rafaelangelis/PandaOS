@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { getCurrentUser, can } from "@/lib/permissions";
-import { TopNav, type NavLink } from "@/components/TopNav";
+import { TopNav, type NavLink, type NavGroup } from "@/components/TopNav";
 import { UppercaseInputs } from "@/components/UppercaseInputs";
 import { NumericInputs } from "@/components/NumericInputs";
 import type { ModuleKey } from "@/lib/modules";
@@ -31,9 +31,15 @@ const MODULE_LINKS: Record<ModuleKey, NavLink> = {
   financeiro: { href: "/financeiro", label: "Financeiro" },
   relatorios: { href: "/relatorios", label: "Relatórios" },
   usuarios: { href: "/usuarios", label: "Usuários" },
+  empresa: { href: "/empresa", label: "Dados da Empresa" },
 };
 
-const CADASTRO_MODULES: ModuleKey[] = ["clientes", "estoque", "servicos", "contasFinanceiras", "usuarios"];
+const CADASTRO_MODULES: ModuleKey[] = ["clientes", "estoque", "servicos", "contasFinanceiras", "usuarios", "empresa"];
+const RELATORIOS_LINKS: NavLink[] = [
+  { href: "/relatorios/os-por-cliente", label: "OS por Cliente" },
+  { href: "/relatorios/contas-a-receber", label: "Contas a Receber" },
+];
+const GROUPED_MODULES: ModuleKey[] = [...CADASTRO_MODULES, "relatorios"];
 
 export default async function RootLayout({
   children,
@@ -47,7 +53,7 @@ export default async function RootLayout({
           ? [{ href: "/dashboard", label: "Dashboard" }]
           : []),
         ...(Object.keys(MODULE_LINKS) as ModuleKey[])
-          .filter((key) => !CADASTRO_MODULES.includes(key) && can(user, key, "view"))
+          .filter((key) => !GROUPED_MODULES.includes(key) && can(user, key, "view"))
           .map((key) => MODULE_LINKS[key]),
       ]
     : [];
@@ -56,15 +62,28 @@ export default async function RootLayout({
     ? CADASTRO_MODULES.filter((key) => can(user, key, "view")).map((key) => MODULE_LINKS[key])
     : [];
 
+  const relatoriosLinks = user && can(user, "relatorios", "view") ? RELATORIOS_LINKS : [];
+
+  const groups: NavGroup[] = [
+    { label: "Cadastro", links: cadastroLinks },
+    { label: "Relatórios", links: relatoriosLinks },
+  ];
+
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark");}}catch(e){}})();`,
+          }}
+        />
         <UppercaseInputs />
         <NumericInputs />
-        {user && <TopNav links={links} groupedLinks={cadastroLinks} userName={user.name} />}
+        {user && <TopNav links={links} groups={groups} userName={user.name} />}
         {children}
       </body>
     </html>

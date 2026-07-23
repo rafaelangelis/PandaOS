@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
-import { bulkMarkInstallmentsPaid } from "@/app/vendas/actions";
-import { MarkPaidButton } from "./MarkPaidButton";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { bulkMarkInstallmentsPaid, partialMarkInstallmentPaid, discountMarkInstallmentPaid } from "@/app/vendas/actions";
 import { EstornarButton } from "./EstornarButton";
 
 function currency(value: number) {
@@ -38,17 +37,38 @@ export function ContasReceberTable({
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [accountId, setAccountId] = useState("");
+  const [baixaType, setBaixaType] = useState<"total" | "parcial" | "desconto">("total");
+  const [partialAmount, setPartialAmount] = useState("");
+  const [discountAmount, setDiscountAmount] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const allSelected = installments.length > 0 && selected.size === installments.length;
+  const selectableInstallments = useMemo(() => installments.filter((i) => i.status !== "pago"), [installments]);
+  const allSelected = selectableInstallments.length > 0 && selected.size === selectableInstallments.length;
   const selectedTotal = useMemo(
     () => installments.filter((i) => selected.has(i.id)).reduce((s, i) => s + i.amount, 0),
     [installments, selected]
   );
+  const singleSelected = selected.size === 1 ? installments.find((i) => selected.has(i.id)) ?? null : null;
+
+  useEffect(() => {
+    if (selected.size !== 1) setBaixaType("total");
+  }, [selected.size]);
+
+  // Keep the selection in sync with the current rows: if an installment gets
+  // removed from the list from under us (e.g. Estornar deletes it), drop its
+  // id from `selected` too, or it keeps counting toward the selection size
+  // and silently blocks "Parcial" (which requires exactly one real row).
+  useEffect(() => {
+    setSelected((prev) => {
+      const validIds = new Set(installments.map((i) => i.id));
+      const next = new Set(Array.from(prev).filter((id) => validIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [installments]);
 
   function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(installments.map((i) => i.id)));
+    setSelected(allSelected ? new Set() : new Set(selectableInstallments.map((i) => i.id)));
   }
 
   function toggleOne(id: string) {
@@ -63,6 +83,37 @@ export function ContasReceberTable({
   function applyBaixa() {
     if (selected.size === 0) return;
     setError(null);
+
+    if (baixaType === "parcial") {
+      if (!singleSelected) return;
+      const amount = Number(partialAmount);
+      startTransition(async () => {
+        const result = await partialMarkInstallmentPaid(singleSelected.id, accountId, amount);
+        if (result?.error) {
+          setError(result.error);
+          return;
+        }
+        setSelected(new Set());
+        setPartialAmount("");
+      });
+      return;
+    }
+
+    if (baixaType === "desconto") {
+      if (!singleSelected) return;
+      const discount = Number(discountAmount);
+      startTransition(async () => {
+        const result = await discountMarkInstallmentPaid(singleSelected.id, accountId, discount);
+        if (result?.error) {
+          setError(result.error);
+          return;
+        }
+        setSelected(new Set());
+        setDiscountAmount("");
+      });
+      return;
+    }
+
     startTransition(async () => {
       const result = await bulkMarkInstallmentsPaid(Array.from(selected), accountId);
       if (result?.error) {
@@ -98,7 +149,7 @@ export function ContasReceberTable({
               <tr
                 key={inst.id}
                 onClick={() => router.push(`/os/${inst.serviceOrderId}?from=financeiro`)}
-                className={`cursor-pointer border-t border-black/10 hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5 ${
+                className={`cursor-pointer border-t border-black/10 hover:bg-orange-100 dark:border-white/10 dark:hover:bg-[rgba(255,165,0,0.18)] ${
                   selected.has(inst.id) ? "bg-black/5 dark:bg-white/10" : ""
                 }`}
               >
@@ -107,14 +158,12 @@ export function ContasReceberTable({
                     type="checkbox"
                     checked={selected.has(inst.id)}
                     onChange={() => toggleOne(inst.id)}
+                    disabled={inst.status === "pago"}
                     aria-label={`Selecionar parcela ${inst.number} da venda #${inst.saleNumber}`}
                   />
                 </td>
                 <td className="whitespace-nowrap px-4 py-2">
-                  <Link
-                    href={`/os/${inst.serviceOrderId}?from=financeiro`}
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <Link href={`/os/${inst.serviceOrderId}?from=financeiro`} onClick={(e) => e.stopPropagation()}>
                     Venda #{inst.saleNumber}
                   </Link>
                 </td>
@@ -124,13 +173,24 @@ export function ContasReceberTable({
                 <td className="whitespace-nowrap px-4 py-2">{inst.paidAtStr ?? "—"}</td>
                 <td className="whitespace-nowrap px-4 py-2">{inst.accountName ?? "—"}</td>
                 <td className="whitespace-nowrap px-4 py-2">{currency(inst.amount)}</td>
-                <td className="whitespace-nowrap px-4 py-2 capitalize">{inst.status}</td>
+                <td className="whitespace-nowrap px-4 py-2">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
+                      inst.status === "pago"
+                        ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400"
+                        : inst.status === "parcial"
+                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-400"
+                          : inst.status === "pendente"
+                            ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400"
+                            : "bg-black/5 text-zinc-600 dark:bg-white/10 dark:text-zinc-300"
+                    }`}
+                  >
+                    {inst.status}
+                  </span>
+                </td>
                 {canEdit && (
                   <td className="whitespace-nowrap px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-3">
-                      {inst.status !== "pago" && <MarkPaidButton installmentId={inst.id} accounts={accounts} />}
-                      <EstornarButton serviceOrderId={inst.serviceOrderId} />
-                    </div>
+                    <EstornarButton serviceOrderId={inst.serviceOrderId} />
                   </td>
                 )}
               </tr>
@@ -149,7 +209,7 @@ export function ContasReceberTable({
       <div className="w-full shrink-0 rounded-lg border border-black/10 p-4 dark:border-white/10 lg:w-64">
         {canEdit && (
           <>
-            <label className="mb-1 block text-xs font-medium text-zinc-500">Conta que recebeu</label>
+            <label className="mb-1 block text-xs font-medium text-zinc-500">Conta financeira</label>
             <select
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
@@ -162,11 +222,87 @@ export function ContasReceberTable({
                 </option>
               ))}
             </select>
+
+            <label className="mb-1 block text-xs font-medium text-zinc-500">Tipo de baixa</label>
+            <div className="mb-3 flex gap-3 text-sm">
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="baixaType"
+                  checked={baixaType === "total"}
+                  onChange={() => setBaixaType("total")}
+                />
+                Total
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="baixaType"
+                  checked={baixaType === "parcial"}
+                  disabled={!singleSelected}
+                  onChange={() => setBaixaType("parcial")}
+                />
+                Parcial
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="baixaType"
+                  checked={baixaType === "desconto"}
+                  disabled={!singleSelected}
+                  onChange={() => setBaixaType("desconto")}
+                />
+                Desconto
+              </label>
+            </div>
+            {!singleSelected && (
+              <p className="mb-3 text-xs text-zinc-500">
+                Baixa parcial ou com desconto só está disponível com uma parcela selecionada.
+              </p>
+            )}
+
+            {baixaType === "parcial" && singleSelected && (
+              <div className="mb-3 flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-500">
+                  Valor pago (parcela: {currency(singleSelected.amount)})
+                </label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  data-numeric="decimal"
+                  value={partialAmount}
+                  onChange={(e) => setPartialAmount(e.target.value)}
+                  className="w-full rounded-md border border-black/10 bg-transparent px-3 py-1.5 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-zinc-50 dark:focus:border-white/30"
+                />
+              </div>
+            )}
+
+            {baixaType === "desconto" && singleSelected && (
+              <div className="mb-3 flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-500">
+                  Valor do desconto (parcela: {currency(singleSelected.amount)})
+                </label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  data-numeric="decimal"
+                  value={discountAmount}
+                  onChange={(e) => setDiscountAmount(e.target.value)}
+                  className="w-full rounded-md border border-black/10 bg-transparent px-3 py-1.5 text-sm text-black outline-none focus:border-black/30 dark:border-white/10 dark:text-zinc-50 dark:focus:border-white/30"
+                />
+                {Number(discountAmount) > 0 && (
+                  <p className="text-xs text-zinc-500">
+                    Valor a receber: {currency(Math.max(0, singleSelected.amount - Number(discountAmount)))}
+                  </p>
+                )}
+              </div>
+            )}
+
             <button
               type="button"
               onClick={applyBaixa}
               disabled={selected.size === 0 || isPending}
-              className="w-full rounded-md bg-black px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+              className="w-full rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {isPending ? "Baixando..." : "Baixar selecionados"}
             </button>

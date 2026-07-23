@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useRef, useState } from "react";
 import { createServiceOrder, updateServiceOrder, type ServiceOrderState } from "../actions";
 import { CancelButton } from "@/components/CancelButton";
+import { ConfirmSaveButton } from "@/components/ConfirmSaveButton";
 
 type Customer = { id: string; name: string; phone: string | null };
 type Technician = { id: string; name: string };
@@ -130,7 +131,7 @@ export function ServiceOrderForm({
           quantity: String(p.quantity),
           unitPrice: String(p.unitPrice),
         }))
-      : [{ key: crypto.randomUUID(), partId: "", description: "", quantity: "", unitPrice: "" }]
+      : [{ key: crypto.randomUUID(), partId: "", description: "", quantity: "1", unitPrice: "" }]
   );
   const [openPartDropdown, setOpenPartDropdown] = useState<string | null>(null);
   const [partHighlight, setPartHighlight] = useState(-1);
@@ -142,13 +143,14 @@ export function ServiceOrderForm({
           hours: String(s.hours),
           unitPrice: String(s.unitPrice),
         }))
-      : [{ key: crypto.randomUUID(), description: "", hours: "", unitPrice: "", startedAt: "", endedAt: "" }]
+      : [{ key: crypto.randomUUID(), description: "", hours: "1", unitPrice: "", startedAt: "", endedAt: "" }]
   );
   const [openServiceDropdown, setOpenServiceDropdown] = useState<string | null>(null);
   const [serviceHighlight, setServiceHighlight] = useState(-1);
 
   const partDescriptionRefs = useRef<Map<string, HTMLInputElement>>(new Map());
   const serviceDescriptionRefs = useRef<Map<string, HTMLInputElement>>(new Map());
+  const formRef = useRef<HTMLFormElement>(null);
 
   const totalParts = parts.reduce((sum, p) => sum + (Number(p.quantity) || 0) * (Number(p.unitPrice) || 0), 0);
   const totalServices = services.reduce((sum, s) => sum + (Number(s.hours) || 0) * (Number(s.unitPrice) || 0), 0);
@@ -156,18 +158,36 @@ export function ServiceOrderForm({
   const total = Math.max(0, totalParts + totalServices - (Number(discount) || 0));
 
   return (
-    <form action={formAction} className="flex flex-col gap-8" autoComplete="off">
+    <form ref={formRef} action={formAction} className="flex flex-col gap-8" autoComplete="off">
       <div className="sticky top-14 z-40 -mx-6 flex flex-wrap items-center justify-between gap-3 border-b border-black/10 bg-zinc-50/95 px-6 py-3 backdrop-blur dark:border-white/10 dark:bg-black/95">
         <h1 className="text-xl font-semibold text-black dark:text-zinc-50">{title}</h1>
         <div className="flex items-center gap-3">
           <CancelButton />
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-          >
-            {pending ? "Salvando..." : mode === "edit" ? "Salvar alterações" : "Salvar Ordem de Serviço"}
-          </button>
+          {mode === "edit" && serviceOrderId && (
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="rounded-md border border-black/10 px-3 py-1.5 text-sm font-medium text-black hover:bg-black/5 dark:border-transparent dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            >
+              Imprimir
+            </button>
+          )}
+          {mode === "edit" ? (
+            <ConfirmSaveButton
+              formRef={formRef}
+              pending={pending}
+              label="Salvar alterações"
+              className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+            />
+          ) : (
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+            >
+              {pending ? "Salvando..." : "Salvar Ordem de Serviço"}
+            </button>
+          )}
         </div>
       </div>
       <section className="flex flex-col gap-4 rounded-lg border border-black/10 p-6 dark:border-white/10">
@@ -220,7 +240,6 @@ export function ServiceOrderForm({
                           onClick={() => selectCustomer(c)}
                         >
                           {c.name}
-                          {c.phone ? ` — ${c.phone}` : ""}
                         </button>
                       </li>
                     ))}
@@ -513,7 +532,7 @@ export function ServiceOrderForm({
           className="self-start text-sm font-medium text-zinc-600 underline dark:text-zinc-400"
           onClick={() => {
             const newKey = crypto.randomUUID();
-            setParts([...parts, { key: newKey, partId: "", description: "", quantity: "", unitPrice: "" }]);
+            setParts([...parts, { key: newKey, partId: "", description: "", quantity: "1", unitPrice: "" }]);
             requestAnimationFrame(() => partDescriptionRefs.current.get(newKey)?.focus());
           }}
         >
@@ -658,7 +677,7 @@ export function ServiceOrderForm({
             const newKey = crypto.randomUUID();
             setServices([
               ...services,
-              { key: newKey, description: "", hours: "", unitPrice: "", startedAt: "", endedAt: "" },
+              { key: newKey, description: "", hours: "1", unitPrice: "", startedAt: "", endedAt: "" },
             ]);
             requestAnimationFrame(() => serviceDescriptionRefs.current.get(newKey)?.focus());
           }}
@@ -670,7 +689,7 @@ export function ServiceOrderForm({
 
       <section className="flex flex-col gap-4 rounded-lg border border-black/10 p-6 dark:border-white/10">
         <h2 className="text-lg font-semibold text-black dark:text-zinc-50">Detalhes da OS</h2>
-        <div className="grid gap-4 sm:grid-cols-4">
+        <div className={`grid gap-4 ${mode === "edit" ? "sm:grid-cols-4" : "sm:grid-cols-1"}`}>
           <div className="flex flex-col gap-1">
             <label className={labelClass}>Data de entrada</label>
             <input
@@ -681,50 +700,56 @@ export function ServiceOrderForm({
               autoComplete="off"
             />
           </div>
-          <div className="flex flex-col gap-1">
-            <label className={labelClass}>Data prevista</label>
-            <input
-              type="date"
-              name="expectedDate"
-              defaultValue={initialData?.expectedDate}
-              className={inputClass}
-              autoComplete="off"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className={labelClass}>Data de término</label>
-            <input
-              type="date"
-              name="completionDate"
-              defaultValue={initialData?.completionDate}
-              className={inputClass}
-              autoComplete="off"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className={labelClass}>Data de saída</label>
-            <input
-              type="date"
-              name="exitDate"
-              defaultValue={initialData?.exitDate}
-              className={inputClass}
-              autoComplete="off"
-            />
-          </div>
+          {mode === "edit" && (
+            <>
+              <div className="flex flex-col gap-1">
+                <label className={labelClass}>Data prevista</label>
+                <input
+                  type="date"
+                  name="expectedDate"
+                  defaultValue={initialData?.expectedDate}
+                  className={inputClass}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className={labelClass}>Data de término</label>
+                <input
+                  type="date"
+                  name="completionDate"
+                  defaultValue={initialData?.completionDate}
+                  className={inputClass}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className={labelClass}>Data de saída</label>
+                <input
+                  type="date"
+                  name="exitDate"
+                  defaultValue={initialData?.exitDate}
+                  className={inputClass}
+                  autoComplete="off"
+                />
+              </div>
+            </>
+          )}
         </div>
-        <div className="flex flex-col gap-1 sm:w-48">
-          <label className={labelClass}>Desconto (R$)</label>
-          <input
-            type="text"
-            inputMode="decimal"
-            data-numeric="decimal"
-            name="discount"
-            className={inputClass}
-            value={discount}
-            autoComplete="off"
-            onChange={(e) => setDiscount(e.target.value)}
-          />
-        </div>
+        {mode === "edit" && (
+          <div className="flex flex-col gap-1 sm:w-48">
+            <label className={labelClass}>Desconto (R$)</label>
+            <input
+              type="text"
+              inputMode="decimal"
+              data-numeric="decimal"
+              name="discount"
+              className={inputClass}
+              value={discount}
+              autoComplete="off"
+              onChange={(e) => setDiscount(e.target.value)}
+            />
+          </div>
+        )}
 
         <div className="flex flex-col items-end gap-1 border-t border-black/10 pt-4 dark:border-white/10">
           <p className="text-sm text-zinc-500">Peças: {currency(totalParts)}</p>

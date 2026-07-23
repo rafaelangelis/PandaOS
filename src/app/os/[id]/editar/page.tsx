@@ -2,6 +2,11 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requirePermission } from "@/lib/permissions";
 import { ServiceOrderForm, type ServiceOrderInitialData } from "../../novo/ServiceOrderForm";
+import { OSPrintSheet, type OSPrintData } from "@/components/OSPrintSheet";
+
+function formatDateUTC(date: Date) {
+  return date.toLocaleDateString("pt-BR", { timeZone: "UTC" });
+}
 
 function toInputDate(date: Date | null) {
   return date ? date.toISOString().slice(0, 10) : "";
@@ -65,24 +70,42 @@ export default async function EditarOSPage({
     })),
   };
 
+  const printData: OSPrintData = {
+    number: order.number,
+    status: order.status,
+    customerName: order.customer.name,
+    customerPhone: order.customer.phone,
+    technicianName: order.technician?.name ?? null,
+    entryDateStr: formatDateUTC(order.entryDate),
+    equipment: order.equipment,
+    serialNumber: order.serialNumber,
+    problem: order.problem,
+    discount: order.discount,
+    parts: order.parts.map((p) => ({ id: p.id, description: p.description, quantity: p.quantity, unitPrice: p.unitPrice })),
+    services: order.services.map((s) => ({ id: s.id, description: s.description, hours: s.hours, unitPrice: s.unitPrice })),
+  };
+
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10 font-sans">
-      <ServiceOrderForm
-        mode="edit"
-        title={`Editar OS #${order.number}`}
-        serviceOrderId={order.id}
-        returnTo={from}
-        initialData={initialData}
-        customers={customers.map((c) => ({ id: c.id, name: c.name, phone: c.phone }))}
-        technicians={technicians.map((t) => ({ id: t.id, name: t.name }))}
-        inventoryParts={inventoryParts.map((p) => ({
-          id: p.id,
-          name: p.name,
-          quantity: p.quantity,
-          unitPrice: p.unitPrice,
-        }))}
-        serviceCatalog={services.map((s) => ({ id: s.id, name: s.name, unitPrice: s.unitPrice }))}
-      />
-    </div>
+    <>
+      <OSPrintSheet data={printData} />
+      <div className="mx-auto max-w-5xl px-6 py-10 font-sans print:hidden">
+        <ServiceOrderForm
+          mode="edit"
+          title={`Editar OS #${order.number}`}
+          serviceOrderId={order.id}
+          returnTo={from}
+          initialData={initialData}
+          customers={customers.map((c) => ({ id: c.id, name: c.name, phone: c.phone }))}
+          technicians={technicians.map((t) => ({ id: t.id, name: t.name }))}
+          inventoryParts={inventoryParts.map((p) => ({
+            id: p.id,
+            name: p.name,
+            quantity: p.quantity,
+            unitPrice: p.unitPrice,
+          }))}
+          serviceCatalog={services.map((s) => ({ id: s.id, name: s.name, unitPrice: s.unitPrice }))}
+        />
+      </div>
+    </>
   );
 }

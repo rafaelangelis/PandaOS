@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { updateGroup, type FormState } from "../../actions";
 import { GroupPermissionsGrid } from "../GroupPermissionsGrid";
 import { CancelButton } from "@/components/CancelButton";
+import { ConfirmSaveButton } from "@/components/ConfirmSaveButton";
 
 const initialState: FormState = {};
 const inputClass =
@@ -20,9 +21,10 @@ export function EditGroupForm({
 }) {
   const updateGroupWithId = updateGroup.bind(null, groupId);
   const [state, formAction, pending] = useActionState(updateGroupWithId, initialState);
+  const formRef = useRef<HTMLFormElement>(null);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form ref={formRef} action={formAction} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Nome do grupo</label>
         <input type="text" name="name" required defaultValue={name} className={inputClass} />
@@ -33,13 +35,12 @@ export function EditGroupForm({
       {state.error && <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
 
       <div className="flex items-center gap-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-black px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-        >
-          {pending ? "Salvando..." : "Salvar alterações"}
-        </button>
+        <ConfirmSaveButton
+          formRef={formRef}
+          pending={pending}
+          label="Salvar alterações"
+          className="rounded-md bg-green-600 px-5 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+        />
         <CancelButton />
       </div>
     </form>

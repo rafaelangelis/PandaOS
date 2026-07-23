@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -12,15 +20,40 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.dark select {
+  background-color: #18181b;
+  color: #ededed;
+}
+
+.dark select option {
+  background-color: #18181b;
+  color: #ededed;
+}
+
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
+.dark textarea:hover,
+.dark select:hover,
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+.dark textarea:focus,
+.dark select:focus {
+  background-color: rgba(255, 165, 0, 0.12);
+  border-color: rgba(255, 165, 0, 0.5);
+}
+
+/* Printing always renders on white paper, regardless of the on-screen theme —
+   force every element back to light-mode colors so dark-mode text (e.g.
+   dark:text-zinc-50) never prints as invisible white-on-white. */
+@media print {
+  html.dark,
+  html.dark * {
+    color: #171717 !important;
+    background-color: transparent !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
+  }
 }

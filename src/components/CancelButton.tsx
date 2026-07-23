@@ -9,7 +9,7 @@ export function CancelButton() {
     <button
       type="button"
       onClick={() => router.back()}
-      className="rounded-md border border-black/10 px-3 py-1.5 text-sm font-medium text-black hover:bg-black/5 dark:border-white/10 dark:text-zinc-50 dark:hover:bg-white/5"
+      className="rounded-md border border-black/10 px-3 py-1.5 text-sm font-medium text-black hover:bg-black/5 dark:border-transparent dark:bg-white dark:text-black dark:hover:bg-zinc-200"
     >
       Cancelar
     </button>

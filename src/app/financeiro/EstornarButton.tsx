@@ -2,23 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { reverseSale } from "@/app/vendas/actions";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 export function EstornarButton({ serviceOrderId }: { serviceOrderId: string }) {
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function handleClick() {
-    if (
-      !window.confirm(
-        "Estornar esta cobrança vai excluir a venda e as parcelas, e reabrir a OS. Deseja continuar?"
-      )
-    ) {
-      return;
-    }
+  function handleConfirm() {
     setError(null);
     startTransition(async () => {
       const result = await reverseSale(serviceOrderId);
       if (result?.error) setError(result.error);
+      setConfirming(false);
     });
   }
 
@@ -28,11 +24,22 @@ export function EstornarButton({ serviceOrderId }: { serviceOrderId: string }) {
       <button
         type="button"
         disabled={pending}
-        onClick={handleClick}
-        className="text-sm font-medium text-red-600 underline hover:text-red-800 disabled:opacity-50 dark:text-red-400 dark:hover:text-red-300"
+        onClick={() => setConfirming(true)}
+        className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
       >
         {pending ? "Estornando..." : "Estornar"}
       </button>
+
+      <ConfirmDialog
+        open={confirming}
+        title="Estornar cobrança"
+        message="Estornar esta cobrança vai excluir a venda e as parcelas, e reabrir a OS. Deseja continuar?"
+        confirmLabel="Estornar"
+        danger
+        pending={pending}
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirming(false)}
+      />
     </div>
   );
 }

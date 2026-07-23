@@ -41,7 +41,7 @@ export function EstoqueTable({ parts, canEdit }: { parts: PartRow[]; canEdit: bo
                 key={part.id}
                 onClick={canEdit ? () => router.push(href) : undefined}
                 className={`border-t border-black/10 dark:border-white/10 ${
-                  canEdit ? "cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" : ""
+                  canEdit ? "cursor-pointer hover:bg-orange-100 dark:hover:bg-[rgba(255,165,0,0.18)]" : ""
                 } ${low ? "bg-red-50 dark:bg-red-950/40" : ""}`}
               >
                 <td className="px-4 py-2">{part.name}</td>

@@ -42,7 +42,7 @@ export default async function DashboardPage({
       : Promise.resolve([]),
     showFinanceiro
       ? prisma.saleInstallment.findMany({
-          where: { status: "pendente" },
+          where: { status: { in: ["pendente", "parcial"] } },
           select: { amount: true, dueDate: true },
         })
       : Promise.resolve([]),

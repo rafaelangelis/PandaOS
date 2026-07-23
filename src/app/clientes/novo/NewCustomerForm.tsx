@@ -4,8 +4,8 @@ import { useActionState } from "react";
 import { createCustomer, type CustomerFormState } from "../actions";
 import { CancelButton } from "@/components/CancelButton";
 import { CpfCnpjInput } from "../CpfCnpjInput";
-import { PhoneInput } from "../PhoneInput";
-import { CepInput } from "../CepInput";
+import { PhoneInput } from "@/components/PhoneInput";
+import { CepInput } from "@/components/CepInput";
 
 const initialState: CustomerFormState = {};
 const inputClass =

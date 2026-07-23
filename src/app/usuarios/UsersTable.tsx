@@ -30,7 +30,7 @@ export function UsersTable({ users }: { users: UserRow[] }) {
               <tr
                 key={u.id}
                 onClick={() => router.push(href)}
-                className="cursor-pointer border-t border-black/10 hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"
+                className="cursor-pointer border-t border-black/10 hover:bg-orange-100 dark:border-white/10 dark:hover:bg-[rgba(255,165,0,0.18)]"
               >
                 <td className="px-4 py-2">
                   {u.name} {u.isAdmin && <span className="ml-1 text-xs text-zinc-500">(admin)</span>}

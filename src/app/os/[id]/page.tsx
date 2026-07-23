@@ -62,7 +62,7 @@ export default async function OSDetailPage({
           <span className="rounded-full bg-black/5 px-3 py-1 text-sm capitalize dark:bg-white/10">
             {order.status}
           </span>
-          {canEditOS && (
+          {canEditOS && from !== "financeiro" && (
             <Link
               href={editHref}
               className="rounded-md border border-black/10 px-3 py-1.5 text-sm font-medium text-black hover:bg-black/5 dark:border-white/10 dark:text-zinc-50 dark:hover:bg-white/5"

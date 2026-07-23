@@ -176,6 +176,21 @@ model SaleInstallment {
   account   FinancialAccount? @relation(fields: [accountId], references: [id])
 }
 
+model CompanyInfo {
+  id            String   @id
+  name          String?
+  legalName     String?
+  cnpj          String?
+  address       String?
+  addressNumber String?
+  neighborhood  String?
+  zipCode       String?
+  city          String?
+  phone         String?
+  logoUrl       String?
+  updatedAt     DateTime @updatedAt
+}
+
 model Commission {
   id         String   @id @default(cuid())
   saleId     String   @unique

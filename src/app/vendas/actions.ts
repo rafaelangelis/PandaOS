@@ -77,20 +77,6 @@ export async function createSale(
   return {};
 }
 
-export async function markInstallmentPaid(installmentId: string, accountId: string): Promise<{ error?: string }> {
-  if (!accountId) {
-    return { error: "Selecione a conta que recebeu o pagamento." };
-  }
-
-  await requirePermission("financeiro", "edit");
-  await prisma.saleInstallment.update({
-    where: { id: installmentId },
-    data: { status: "pago", paidAt: new Date(), accountId },
-  });
-  revalidatePath("/financeiro");
-  return {};
-}
-
 export async function bulkMarkInstallmentsPaid(ids: string[], accountId: string): Promise<{ error?: string }> {
   if (!ids.length) {
     return { error: "Selecione ao menos uma conta a receber." };
@@ -104,6 +90,83 @@ export async function bulkMarkInstallmentsPaid(ids: string[], accountId: string)
   await prisma.saleInstallment.updateMany({
     where: { id: { in: ids }, status: { not: "pago" } },
     data: { status: "pago", paidAt: new Date(), accountId },
+  });
+
+  revalidatePath("/financeiro");
+  return {};
+}
+
+export async function partialMarkInstallmentPaid(
+  installmentId: string,
+  accountId: string,
+  paidAmount: number
+): Promise<{ error?: string }> {
+  if (!accountId) {
+    return { error: "Selecione a conta que recebeu o pagamento." };
+  }
+  if (!(paidAmount > 0)) {
+    return { error: "Informe um valor pago maior que zero." };
+  }
+
+  await requirePermission("financeiro", "edit");
+
+  const installment = await prisma.saleInstallment.findUnique({
+    where: { id: installmentId },
+    include: { sale: { include: { installments: true } } },
+  });
+  if (!installment) return { error: "Parcela não encontrada." };
+  if (paidAmount >= installment.amount) {
+    return { error: "O valor pago deve ser menor que o valor da parcela para uma baixa parcial." };
+  }
+
+  const remaining = Math.round((installment.amount - paidAmount) * 100) / 100;
+  const nextNumber = Math.max(...installment.sale.installments.map((i) => i.number)) + 1;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.saleInstallment.update({
+      where: { id: installmentId },
+      data: { status: "pago", paidAt: new Date(), accountId, amount: paidAmount },
+    });
+    await tx.saleInstallment.create({
+      data: {
+        saleId: installment.saleId,
+        number: nextNumber,
+        amount: remaining,
+        dueDate: installment.dueDate,
+        status: "parcial",
+      },
+    });
+  });
+
+  revalidatePath("/financeiro");
+  return {};
+}
+
+export async function discountMarkInstallmentPaid(
+  installmentId: string,
+  accountId: string,
+  discountAmount: number
+): Promise<{ error?: string }> {
+  if (!accountId) {
+    return { error: "Selecione a conta que recebeu o pagamento." };
+  }
+  if (!(discountAmount > 0)) {
+    return { error: "Informe um valor de desconto maior que zero." };
+  }
+
+  await requirePermission("financeiro", "edit");
+
+  const installment = await prisma.saleInstallment.findUnique({ where: { id: installmentId } });
+  if (!installment) return { error: "Parcela não encontrada." };
+  if (discountAmount >= installment.amount) {
+    return { error: "O desconto deve ser menor que o valor da parcela." };
+  }
+
+  const paidAmount = Math.round((installment.amount - discountAmount) * 100) / 100;
+
+  await prisma.saleInstallment.update({
+    where: { id: installmentId },
+    data: { status: "pago", paidAt: new Date(), accountId, amount: paidAmount },
   });
 
   revalidatePath("/financeiro");

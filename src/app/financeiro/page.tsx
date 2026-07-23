@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requirePermission, can } from "@/lib/permissions";
 import { ContasReceberTable } from "./ContasReceberTable";
-import { ClienteFilterInput } from "./ClienteFilterInput";
+import { ClienteFilterInput } from "@/components/ClienteFilterInput";
 
 function currency(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -37,24 +37,24 @@ export default async function FinanceiroPage({
 
   const hasFilter = Boolean(q);
 
-  const [installmentsRaw, openTotal, accounts, customers] = await Promise.all([
+  const [installmentsRaw, openTotal, customers, accounts] = await Promise.all([
     hasFilter
       ? prisma.saleInstallment.findMany({
           where: {
             ...(dueDateFilter && { dueDate: dueDateFilter }),
-            ...(status && { status }),
+            ...(status && { status: status === "pendente" ? { in: ["pendente", "parcial"] } : status }),
           },
           orderBy: { dueDate: "asc" },
           include: { sale: { include: { customer: true, serviceOrder: true } }, account: true },
         })
       : Promise.resolve([]),
     prisma.saleInstallment.aggregate({
-      where: { status: "pendente" },
+      where: { status: { in: ["pendente", "parcial"] } },
       _sum: { amount: true },
       _count: { _all: true },
     }),
-    prisma.financialAccount.findMany({ orderBy: { name: "asc" } }),
     prisma.customer.findMany({ select: { name: true }, orderBy: { name: "asc" } }),
+    prisma.financialAccount.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   const customerNames = [...new Set(customers.map((c) => c.name))];

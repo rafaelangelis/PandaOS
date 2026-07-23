@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requirePermission, MODULES } from "@/lib/permissions";
+import { getSession } from "@/lib/auth";
 
 export type FormState = { error?: string };
 
@@ -129,4 +130,56 @@ export async function updateUser(
   ]);
 
   redirect("/usuarios");
+}
+
+export type PasswordFormState = { error?: string; success?: boolean };
+
+export async function changeUserPassword(
+  userId: string,
+  _prevState: PasswordFormState,
+  formData: FormData
+): Promise<PasswordFormState> {
+  await requirePermission("usuarios", "edit");
+
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+  if (password.length < 6) {
+    return { error: "A senha deve ter pelo menos 6 caracteres." };
+  }
+  if (password !== confirmPassword) {
+    return { error: "As senhas não coincidem." };
+  }
+
+  const hashed = await bcrypt.hash(password, 10);
+  await prisma.user.update({ where: { id: userId }, data: { password: hashed } });
+
+  return { success: true };
+}
+
+export async function deleteUser(userId: string): Promise<{ error?: string }> {
+  await requirePermission("usuarios", "edit");
+
+  const session = await getSession();
+  if (session?.userId === userId) {
+    return { error: "Você não pode excluir seu próprio usuário." };
+  }
+
+  const [osCount, commissionCount] = await Promise.all([
+    prisma.serviceOrder.count({ where: { technicianId: userId } }),
+    prisma.commission.count({ where: { userId } }),
+  ]);
+
+  if (osCount > 0) {
+    return {
+      error: `Não é possível excluir: usuário está vinculado a ${osCount} ${osCount === 1 ? "ordem de serviço" : "ordens de serviço"} como técnico.`,
+    };
+  }
+  if (commissionCount > 0) {
+    return { error: "Não é possível excluir: usuário possui comissões registradas." };
+  }
+
+  await prisma.user.delete({ where: { id: userId } });
+  revalidatePath("/usuarios");
+  return {};
 }
